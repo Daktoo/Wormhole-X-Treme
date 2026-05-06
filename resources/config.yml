@@ -1,0 +1,22 @@
+logger:
+    level: 'INFO'
+configuration:
+    backend: 'spigot'
+permissions:
+    debug: false
+    backend: 'pex'
+gate:
+    timeout:
+        activate: 30
+        shutdown: 38
+    use:
+        cooldown:
+            enabled: false
+            time: 10
+    welcome-player:
+        enabled: false
+        message: ''
+    player:
+        kickback:
+            enabled: false
+            blocks: 2
