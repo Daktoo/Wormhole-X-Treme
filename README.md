@@ -1,6 +1,6 @@
-Wormhole X-Treme v1.1.3
+# Wormhole X-Treme v1.1.3
 
-New Install:
+## New Install:
 
 0. Download the jar containing plugin, hsqldb, and gate shape files.
 
@@ -19,7 +19,7 @@ New Install:
 3.3. (Optional) Start Server again
 
 
-Update:
+## Update:
 
 0.   Download the jar containing plugin, hsqldb, and gate shape files.
 
@@ -35,10 +35,10 @@ Update:
 
 4.   If gates act weird, remove them and re-add them.
 
-DO NOT RUN `/wormhole custom -all true` as mentioned in earlier README.txt files, as this can cause complete stargate db corruption.
+**DO NOT RUN `/wormhole custom -all true` as mentioned in earlier README.txt files, as this can cause complete stargate db corruption.**
 
 
-Permissions Plugin Nodes: (Controlled by plugins/WormholeXTreme/settings.txt - SIMPLE_PERMISSIONS)
+## Permissions Plugin Nodes: (Controlled by plugins/WormholeXTreme/settings.txt - SIMPLE_PERMISSIONS)
 
     SIMPLE_PERMISSIONS = false
     Complex Mode:
@@ -68,13 +68,13 @@ Permissions Plugin Nodes: (Controlled by plugins/WormholeXTreme/settings.txt - S
     wormhole.simple.config - Lets a user configure WormholeXTreme settings
 
 
-To Build:
+## Building from source:
 
  0. Install Maven and all of its dependencies. 
 
  1.   Git clone the WX repo.
  1.1. Wormhole X-Treme git repo: git://github.com/Daktoo/Wormhole-X-Treme.git
 
- 2.   Run a 'mvn install' in the directory you ran the git clone of WX into.
+ 2.   Run a `mvn install` in the directory you ran the git clone of WX into.
   
  3.   Enjoy plugin that is now in target/. It will be a jar or a package zip.   
