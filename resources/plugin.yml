@@ -3,6 +3,7 @@ main: de.luricos.bukkit.WormholeXTreme.Wormhole.WormholeXTreme
 version: 1.1.3
 api-version: 1.21
 authors: [Lologarithm, alron, lycano, Dakto_]
+website: 'https://github.com/Daktoo/Wormhole-X-Treme'
 softdepend: [PermissionsEx, WormholeXTremeWorlds, Help]
 description: Wormhole X-Treme! Wormholes as travel portals. Splash Effect, IDC, Iris, configurable Wormhole materials, and much much more.
 commands:
