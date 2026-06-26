@@ -1,16 +1,13 @@
-Wormhole X-Treme v0.854
+Wormhole X-Treme v1.1.3
 
 New Install:
 
-0. Download the zip containing plugin, hsqldb, and gate shape files.
+0. Download the jar containing plugin, hsqldb, and gate shape files.
 
-1. Unzip file into same directory that your craftbukkit.jar exists in. This should put 
-   the hsqldb.jar into the lib/ folder, the WormholeXTreme.jar into the plugins/ folder,
-   and the latest versions of GateShapes into the plugins/WormholeXTreme/GateShapes/ folder.
+1. Place the file into the plugins/ folder. Once the server fully started, the plugin should
+   place all the necessary files into plugins/WormholeXTreme.
    
-2. start server
-
-3.   (Optional) Stop the server and edit the newly generated /plugins/WormholeXTreme/settings.txt 
+2.   (Optional) Stop the server and edit the newly generated /plugins/WormholeXTreme/settings.txt 
      file as needed.
 
 3.1. (Optional) Edit gate shapes in /plugins/WormholeXTreme/GateShapes/
@@ -24,22 +21,21 @@ New Install:
 
 Update:
 
-0.   Download the zip containing plugin, hsqldb, and gate shape files.
+0.   Download the jar containing plugin, hsqldb, and gate shape files.
 
-1.   Extract WormholeXTreme.jar to your plugins/ folder, overwriting existing file.
+1.   Place the WormholeXTreme-1.1.3.jar to your plugins/ folder, overwriting existing file.
 
 2.   (Optional, if upgrading to 3d shapes) If upgrading from v0.833 or earlier, start server before 
      updating gate shapes. 
      
-2.1. (Optional, if upgrading to 3d shapes) From the console run 'wormhole custom -all true'
-
-2.2. (Optional, if upgrading to 3d shapes) Shut down, Replace gate shapes with new shapes from 3d
+2.1. (Optional, if upgrading to 3d shapes) Shut down, Replace gate shapes with new shapes from 3d
      GateShapes/3d/ folder. Edit shapes as needed.
    
 3.   Start server.
 
 4.   If gates act weird, remove them and re-add them.
 
+DO NOT RUN `/wormhole custom -all true` as mentioned in earlier README.txt files, as this can cause complete stargate db corruption.
 
 
 Permissions Plugin Nodes: (Controlled by plugins/WormholeXTreme/settings.txt - SIMPLE_PERMISSIONS)
@@ -77,16 +73,8 @@ To Build:
  0. Install Maven and all of its dependencies. 
 
  1.   Git clone the WX repo.
- 1.1. Wormhole X-Treme git repo: git://github.com/Wormhole-X-Treme/Wormhole-X-Treme.git
+ 1.1. Wormhole X-Treme git repo: git://github.com/Daktoo/Wormhole-X-Treme.git
 
- 2.   Git clone Permissions. Do a mvn install for Permissions.
- 2.1. Permissions git repo: git://github.com/TheYeti/Permissions.git
-
- 3.   Force Help into your local repo.
- 3.1  (example commands) 'mvn install:install-file -Dfile=Help.jar -DgroupId=me.taylorkelly -DartifactId=Help \
-                           -Dversion=0.2.4.1 -Dpackaging=jar -DgeneratePom=true'
- 3.2  Help location: http://forums.bukkit.org/threads/13601/
- 
- 4.   Run a 'mvn install' in the directory you ran the git clone of WX into.
+ 2.   Run a 'mvn install' in the directory you ran the git clone of WX into.
   
- 5.   Enjoy plugin that is now in target/. It will be a jar or a package zip.   
+ 3.   Enjoy plugin that is now in target/. It will be a jar or a package zip.   
