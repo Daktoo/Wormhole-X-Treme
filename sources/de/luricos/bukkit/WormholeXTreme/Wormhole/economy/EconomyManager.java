@@ -383,12 +383,12 @@ public class EconomyManager {
             }
 
             Object economy = getEconomyPluginObject(economyPlugin);
-            if (economy != null && chargeViaEconomyObject(player, shapeName, price, economy)) {
+            if (economy != null && chargeViaEconomyObject(player, shapeName, price, economy, detectedPlugin)) {
                 return true;
             }
 
             Object user = getEconomyPluginUser(economyPlugin, player);
-            if (user != null && chargeViaEconomyUser(player, shapeName, price, user)) {
+            if (user != null && chargeViaEconomyUser(player, shapeName, price, user, detectedPlugin)) {
                 return true;
             }
         } catch (Exception e) {
