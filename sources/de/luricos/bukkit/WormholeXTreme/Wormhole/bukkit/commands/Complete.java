@@ -2,11 +2,13 @@ package de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands;
 
 import de.luricos.bukkit.WormholeXTreme.Wormhole.config.ConfigManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.economy.EconomyManager;
-import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.StargateHelper;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.model.Stargate;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateShape;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.permissions.StargateRestrictions;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.permissions.WXPermissions;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.utils.WXTLogger;
+import java.util.logging.Level;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -32,20 +34,21 @@ public class Complete implements CommandExecutor {
                 if (!StargateRestrictions.isPlayerBuildRestricted(player)) {
                     if (StargateManager.getStargate(name) == null) {
 
-
                         if (ConfigManager.isEconomyEnabled() && EconomyManager.isEconomyEnabled()) {
-                            StargateShape shape = StargateManager.getPlayerBuilderShape(player);
+                            Stargate incomplete = StargateManager.getIncompleteStargate(player);
+                            StargateShape shape = incomplete != null ? incomplete.getGateShape() : null;
                             String shapeName = shape != null ? shape.getShapeName() : null;
 
-                            if (shapeName != null) {
-                                double price = EconomyManager.getPriceForShape(shapeName);
-                                if (price > 0.0 && !EconomyManager.canAffordAndCharge(player, shapeName)) {
+                            WXTLogger.prettyLog(Level.FINE, false,
+                                    "[Economy] wxcomplete economy check: shape=" + shapeName
+                                    + " player=" + player.getName());
 
+                            if (shapeName != null) {
+                                if (!EconomyManager.canAffordAndCharge(player, shapeName)) {
                                     return true;
                                 }
                             }
                         }
-
 
                         if (StargateManager.completeStargate(player, name, idc, network)) {
                             player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());

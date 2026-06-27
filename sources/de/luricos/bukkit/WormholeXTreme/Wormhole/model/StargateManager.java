@@ -193,6 +193,14 @@ public class StargateManager {
         return (HashMap) incompleteStargates;
     }
 
+    public static Stargate getIncompleteStargate(String playerName) {
+        return getIncompleteStargates().get(playerName);
+    }
+
+    public static Stargate getIncompleteStargate(Player player) {
+        return getIncompleteStargate(player.getName());
+    }
+
     protected static HashMap<Location, Block> getOpeningAnimationBlocks() {
         return (HashMap) openingAnimationBlocks;
     }
