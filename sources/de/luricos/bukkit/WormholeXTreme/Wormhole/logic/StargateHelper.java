@@ -1291,20 +1291,19 @@ public class StargateHelper {
             byte[] irisMatBytes   = materialNameBytes(s.getGateCustomIrisMaterial());
             int size = 206 + 16 + structMatBytes.length + portalMatBytes.length + lightMatBytes.length + irisMatBytes.length
                      + (s.getGateStructureBlocks().size() * 12) + (s.getGatePortalBlocks().size() * 12);
-            int numIntsOther = 0;
             for (int i = 0; i < s.getGateLightBlocks().size(); i++) {
+                size += 4; 
                 if (s.getGateLightBlocks().get(i) != null) {
                     size += s.getGateLightBlocks().get(i).size() * 12;
                 }
-                numIntsOther++;
             }
             for (int i2 = 0; i2 < s.getGateWooshBlocks().size(); i2++) {
+                size += 4; 
                 if (s.getGateWooshBlocks().get(i2) != null) {
                     size += s.getGateWooshBlocks().get(i2).size() * 12;
                 }
-                numIntsOther++;
             }
-            ByteBuffer dataArr = ByteBuffer.allocate(size + utfFaceBytes.length + utfIdcBytes.length + (numIntsOther * 4));
+            ByteBuffer dataArr = ByteBuffer.allocate(size + utfFaceBytes.length + utfIdcBytes.length);
             dataArr.put((byte) 8);
             dataArr.put(DataUtils.blockToBytes(s.getGateDialLeverBlock()));
             dataArr.put(s.getGateIrisLeverBlock() != null ? DataUtils.blockToBytes(s.getGateIrisLeverBlock()) : emptyBlock);
