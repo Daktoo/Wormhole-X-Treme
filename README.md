@@ -1,4 +1,4 @@
-# Wormhole X-Treme v1.1.3
+# Wormhole X-Treme v1.1.4
 
 ## New Install:
 
@@ -23,7 +23,7 @@
 
 0.   Download the jar containing plugin, hsqldb, and gate shape files.
 
-1.   Place the WormholeXTreme-1.1.3.jar to your plugins/ folder, overwriting existing file.
+1.   Place the WormholeXTreme-1.1.4.jar to your plugins/ folder, overwriting existing file.
 
 2.   (Optional, if upgrading to 3d shapes) If upgrading from v0.833 or earlier, start server before 
      updating gate shapes. 
@@ -35,7 +35,6 @@
 
 4.   If gates act weird, remove them and re-add them.
 
-**DO NOT RUN `/wormhole custom -all true` as mentioned in earlier README.txt files, as this can cause complete stargate db corruption.**
 
 
 ## Permissions Plugin Nodes: (Controlled by plugins/WormholeXTreme/settings.txt - SIMPLE_PERMISSIONS)
