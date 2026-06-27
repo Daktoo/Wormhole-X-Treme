@@ -1,5 +1,6 @@
 package de.luricos.bukkit.WormholeXTreme.Wormhole;
 
+import de.luricos.bukkit.WormholeXTreme.Wormhole.economy.EconomyManager;
 import de.luricos.bukkit.WormholeXTreme.Worlds.handler.WorldHandler;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.Build;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.BuildList;
@@ -42,7 +43,6 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
 
-/* JADX INFO: loaded from: WormholeXTreme.jar:de/luricos/bukkit/WormholeXTreme/Wormhole/WormholeXTreme.class */
 public class WormholeXTreme extends JavaPlugin {
     protected PermissionManager permissionManager;
     protected ConfigManager configManager;
@@ -90,6 +90,11 @@ public class WormholeXTreme extends JavaPlugin {
             ConfigManager.setupConfigs(getDescription());
             WXTLogger.setLogLevel(ConfigManager.getLogLevel());
             StargateHelper.reloadShapes();
+            if (ConfigManager.isEconomyEnabled()) {
+                EconomyManager.initialise(StargateHelper.getShapeNames());
+            } else {
+                EconomyManager.loadShapePrices(StargateHelper.getShapeNames());
+            }
             if (!ConfigManager.isWormholeWorldsSupportEnabled()) {
                 WXTLogger.prettyLog(Level.INFO, true, "Wormhole Worlds support disabled in settings.txt, loading stargates and worlds ourself.");
                 StargateDBManager.loadStargates(getServer());
@@ -136,6 +141,13 @@ public class WormholeXTreme extends JavaPlugin {
             registerCommands();
         }
         WormholePlayerManager.registerAllOnlinePlayers();
+
+        if (ConfigManager.isEconomyEnabled()) {
+            EconomyManager.initialise(StargateHelper.getShapeNames());
+        } else {
+
+            EconomyManager.loadShapePrices(StargateHelper.getShapeNames());
+        }
         WXTLogger.prettyLog(Level.INFO, true, "Boot sequence completed");
     }
 

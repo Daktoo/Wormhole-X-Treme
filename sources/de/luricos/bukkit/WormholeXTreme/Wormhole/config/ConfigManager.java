@@ -5,11 +5,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import org.bukkit.plugin.PluginDescriptionFile;
 
-/* JADX INFO: loaded from: WormholeXTreme.jar:de/luricos/bukkit/WormholeXTreme/Wormhole/config/ConfigManager.class */
 public class ConfigManager {
     private static final ConcurrentHashMap<ConfigKeys, Setting> configurations = new ConcurrentHashMap<>();
 
-    /* JADX INFO: loaded from: WormholeXTreme.jar:de/luricos/bukkit/WormholeXTreme/Wormhole/config/ConfigManager$ConfigKeys.class */
+
     public enum ConfigKeys {
         BUILT_IN_PERMISSIONS_ENABLED,
         BUILT_IN_DEFAULT_PERMISSION_LEVEL,
@@ -32,10 +31,11 @@ public class ConfigManager {
         SHOW_GATE_WELCOME_MESSAGE,
         USE_EVENT_OR_TP_TRANSPORT,
         WORMHOLE_KICKBACK_BLOCK_COUNT,
-        PERMISSIONS_BACKEND
+        PERMISSIONS_BACKEND,
+        ECONOMY_ENABLED
     }
 
-    /* JADX INFO: loaded from: WormholeXTreme.jar:de/luricos/bukkit/WormholeXTreme/Wormhole/config/ConfigManager$MessageStrings.class */
+
     public enum MessageStrings {
         messageColor("§7"),
         errorHeader("§3:: §5error §3:: §7"),
@@ -71,7 +71,7 @@ public class ConfigManager {
             this.m = message;
         }
 
-        @Override // java.lang.Enum
+        @Override
         public String toString() {
             return this.m;
         }
@@ -304,6 +304,15 @@ public class ConfigManager {
 
     public static void setUseCooldownGroupTwo(int time) {
         setConfigValue(ConfigKeys.USE_COOLDOWN_GROUP_TWO, Integer.valueOf(time));
+    }
+
+    public static boolean isEconomyEnabled() {
+        Setting s = getConfigurations().get(ConfigKeys.ECONOMY_ENABLED);
+        return s != null && s.getBooleanValue();
+    }
+
+    public static void setEconomyEnabled(boolean b) {
+        setConfigValue(ConfigKeys.ECONOMY_ENABLED, Boolean.valueOf(b));
     }
 
     public static void setDebugLevel(String level) {
