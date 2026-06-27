@@ -204,7 +204,87 @@ public class EconomyManager {
             return chargeViaVaultApi(player, shapeName, price);
         }
 
+        if (chargeViaPluginApi(player, shapeName, price)) {
+            return true;
+        }
+
         return chargeViaCommand(player, shapeName, price);
+    }
+
+    private static boolean chargeViaPluginApi(Player player, String shapeName, double price) {
+        if (detectedPlugin == null) {
+            return false;
+        }
+
+        String pluginName = detectedPlugin.toLowerCase();
+        if (pluginName.contains("essentials")) {
+            return chargeViaEssentialsApi(player, shapeName, price);
+        }
+
+        return false;
+    }
+
+    private static boolean chargeViaEssentialsApi(Player player, String shapeName, double price) {
+        Plugin essentialsPlugin = Bukkit.getPluginManager().getPlugin("Essentials");
+        if (essentialsPlugin == null || !essentialsPlugin.isEnabled()) {
+            return false;
+        }
+
+        try {
+            Object economy = null;
+            for (String methodName : new String[]{"getEconomy", "getEconomyHandler", "getMoneyEconomy"}) {
+                try {
+                    Method method = essentialsPlugin.getClass().getMethod(methodName);
+                    economy = method.invoke(essentialsPlugin);
+                    if (economy != null) {
+                        break;
+                    }
+                } catch (NoSuchMethodException ignored) {
+                }
+            }
+
+            if (economy == null) {
+                return false;
+            }
+
+            Method hasEnough = findMethod(economy.getClass(), "hasEnough", String.class, double.class);
+            Method subtract = findMethod(economy.getClass(), "subtract", String.class, double.class);
+            if (hasEnough == null || subtract == null) {
+                return false;
+            }
+
+            boolean enough = (boolean) hasEnough.invoke(economy, player.getName(), price);
+            if (!enough) {
+                player.sendMessage(
+                        "§3:: §5error §3:: §7You do not have enough money to build this stargate. "
+                        + "Cost: " + price);
+                WXTLogger.prettyLog(Level.INFO, false,
+                        "[Economy] " + player.getName() + " cannot afford " + price
+                        + " for '" + shapeName + "'.");
+                return false;
+            }
+
+            subtract.invoke(economy, player.getName(), price);
+            player.sendMessage(
+                    "§3:: §7" + price + " has been deducted from your balance "
+                    + "for building a " + shapeName + " stargate.");
+            WXTLogger.prettyLog(Level.INFO, false,
+                    "[Economy] Essentials: charged " + player.getName() + " "
+                    + price + " for '" + shapeName + "'.");
+            return true;
+        } catch (Exception e) {
+            WXTLogger.prettyLog(Level.WARNING, false,
+                    "[Economy] Essentials API error for " + player.getName() + ": " + e.getMessage());
+            return false;
+        }
+    }
+
+    private static Method findMethod(Class<?> type, String methodName, Class<?>... parameterTypes) {
+        try {
+            return type.getMethod(methodName, parameterTypes);
+        } catch (NoSuchMethodException e) {
+            return null;
+        }
     }
 
     private static boolean chargeViaVaultApi(Player player, String shapeName, double price) {
