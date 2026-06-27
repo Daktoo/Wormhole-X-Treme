@@ -7,14 +7,34 @@ import de.luricos.bukkit.WormholeXTreme.Wormhole.permissions.WXPermissions;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.player.WormholePlayer;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.player.WormholePlayerManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.utils.WXTLogger;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.logging.Level;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
-/* JADX INFO: loaded from: WormholeXTreme.jar:de/luricos/bukkit/WormholeXTreme/Wormhole/bukkit/commands/Dial.class */
-public class Dial implements CommandExecutor {
+public class Dial implements CommandExecutor, TabCompleter {
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        // arg 1: target gate name; arg 2: IDC code (free-form, no suggestions)
+        if (args.length == 1) {
+            List<String> names = new ArrayList<>();
+            String prefix = args[0].toLowerCase();
+            for (Stargate gate : StargateManager.getAllGates()) {
+                if (gate.getGateName().toLowerCase().startsWith(prefix)) {
+                    names.add(gate.getGateName());
+                }
+            }
+            return names;
+        }
+        return Collections.emptyList();
+    }
+
     private static boolean doDial(Player player, String[] args) {
         WormholePlayer wormholePlayer = WormholePlayerManager.getRegisteredWormholePlayer(player);
         Stargate sourceGate = wormholePlayer.getStargate();

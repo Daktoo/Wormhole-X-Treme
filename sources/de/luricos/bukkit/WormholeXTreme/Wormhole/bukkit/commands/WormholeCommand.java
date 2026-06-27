@@ -3,6 +3,7 @@ package de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.commands.CommandListener;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.commands.CommandManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.commands.exceptions.AutoCompleteChoicesException;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -43,7 +44,8 @@ public abstract class WormholeCommand implements CommandListener {
             return playerName.substring(1);
         }
         List<String> players = new LinkedList<>();
-        for (Player player : Bukkit.getServer().getOnlinePlayers()) {
+        Collection<? extends Player> online = Bukkit.getServer().getOnlinePlayers();
+        for (Player player : online) {
             if (player.getName().equalsIgnoreCase(playerName)) {
                 return player.getName();
             }

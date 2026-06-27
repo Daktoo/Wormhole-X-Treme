@@ -5,15 +5,38 @@ import de.luricos.bukkit.WormholeXTreme.Wormhole.model.Stargate;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.permissions.WXPermissions;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.utils.WXTLogger;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.logging.Level;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
-/* JADX INFO: loaded from: WormholeXTreme.jar:de/luricos/bukkit/WormholeXTreme/Wormhole/bukkit/commands/Force.class */
-public class Force implements CommandExecutor {
+public class Force implements CommandExecutor, TabCompleter {
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) {
+            List<String> opts = new ArrayList<>();
+            opts.add("-all");
+            String prefix = args[0].toLowerCase();
+            for (Stargate gate : StargateManager.getAllGates()) {
+                if (gate.getGateName().toLowerCase().startsWith(prefix)) {
+                    opts.add(gate.getGateName());
+                }
+            }
+            if ("-all".startsWith(prefix)) {
+                // already added above
+            }
+            return opts;
+        }
+        return Collections.emptyList();
+    }
+
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         String[] a = CommandUtilities.commandEscaper(args);
         if (a.length == 1) {
@@ -32,7 +55,6 @@ public class Force implements CommandExecutor {
                 }
                 if (CommandUtilities.playerCheck(sender)) {
                     WXTLogger.prettyLog(Level.INFO, false, "Player: \"" + sender.getName() + "\" ran wxforce: " + Arrays.toString(a));
-                    return true;
                 }
                 return true;
             }

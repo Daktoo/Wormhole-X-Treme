@@ -211,19 +211,50 @@ public class WormholeXTreme extends JavaPlugin {
 
     public static void registerCommands() {
         WormholeXTreme tp = getThisPlugin();
-        tp.getCommand("wxforce").setExecutor(new Force());
-        tp.getCommand("wxidc").setExecutor(new WXIDC());
+
+        Force force = new Force();
+        tp.getCommand("wxforce").setExecutor(force);
+        tp.getCommand("wxforce").setTabCompleter(force);
+
+        WXIDC wxidc = new WXIDC();
+        tp.getCommand("wxidc").setExecutor(wxidc);
+        tp.getCommand("wxidc").setTabCompleter(wxidc);
+
         tp.getCommand("wxcompass").setExecutor(new Compass());
+
         tp.getCommand("wxcomplete").setExecutor(new Complete());
-        tp.getCommand("wxremove").setExecutor(new WXRemove());
+
+        WXRemove wxremove = new WXRemove();
+        tp.getCommand("wxremove").setExecutor(wxremove);
+        tp.getCommand("wxremove").setTabCompleter(wxremove);
+
         tp.getCommand("wxlist").setExecutor(new WXList());
-        tp.getCommand("wxgo").setExecutor(new Go());
-        tp.getCommand("dial").setExecutor(new Dial());
-        tp.getCommand("wxbuild").setExecutor(new Build());
+
+        Go go = new Go();
+        tp.getCommand("wxgo").setExecutor(go);
+        tp.getCommand("wxgo").setTabCompleter(go);
+
+        Dial dial = new Dial();
+        tp.getCommand("dial").setExecutor(dial);
+        tp.getCommand("dial").setTabCompleter(dial);
+
+        Build build = new Build();
+        tp.getCommand("wxbuild").setExecutor(build);
+        tp.getCommand("wxbuild").setTabCompleter(build);
+
         tp.getCommand("wxbuildlist").setExecutor(new BuildList());
-        tp.getCommand("wormhole").setExecutor(new Wormhole());
-        tp.getCommand("wxreload").setExecutor(new WXReload());
-        tp.getCommand("wxstatus").setExecutor(new WXStatus());
+
+        Wormhole wormhole = new Wormhole();
+        tp.getCommand("wormhole").setExecutor(wormhole);
+        tp.getCommand("wormhole").setTabCompleter(wormhole);
+
+        WXReload wxreload = new WXReload();
+        tp.getCommand("wxreload").setExecutor(wxreload);
+        tp.getCommand("wxreload").setTabCompleter(wxreload);
+
+        WXStatus wxstatus = new WXStatus();
+        tp.getCommand("wxstatus").setExecutor(wxstatus);
+        tp.getCommand("wxstatus").setTabCompleter(wxstatus);
     }
 
     public static void registerEvents(boolean critical) {

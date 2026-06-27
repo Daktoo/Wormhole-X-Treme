@@ -4,13 +4,41 @@ import de.luricos.bukkit.WormholeXTreme.Wormhole.config.ConfigManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.Stargate;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.permissions.WXPermissions;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
-/* JADX INFO: loaded from: WormholeXTreme.jar:de/luricos/bukkit/WormholeXTreme/Wormhole/bukkit/commands/WXIDC.class */
-public class WXIDC implements CommandExecutor {
+public class WXIDC implements CommandExecutor, TabCompleter {
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) {
+            // Complete gate names that have an iris lever
+            List<String> names = new ArrayList<>();
+            String prefix = args[0].toLowerCase();
+            for (Stargate gate : StargateManager.getAllGates()) {
+                if (gate.getGateName().toLowerCase().startsWith(prefix) && gate.getGateIrisLeverBlock() != null) {
+                    names.add(gate.getGateName());
+                }
+            }
+            return names;
+        }
+        if (args.length == 2) {
+            // arg 2 is the IDC code or -clear
+            String prefix = args[1].toLowerCase();
+            if ("-clear".startsWith(prefix)) {
+                return Arrays.asList("-clear");
+            }
+        }
+        return Collections.emptyList();
+    }
+
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         String[] a = CommandUtilities.commandEscaper(args);
         if (a.length >= 1) {

@@ -28,7 +28,9 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.entity.EntityPortalEvent;
 import org.bukkit.material.Button;
 import org.bukkit.material.Lever;
 
@@ -345,6 +347,59 @@ public class WormholeXTremePlayerListener implements Listener {
             return null;
         }
         return null;
+    }
+
+    /**
+     * Cancels vanilla nether-portal teleportation when the portal block the
+     * player is touching belongs to a WormholeXTreme stargate. This prevents
+     * NETHER_PORTAL-material stargates from also acting as vanilla portals.
+     */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPlayerPortal(PlayerPortalEvent event) {
+        Block from = event.getFrom().getBlock();
+        // Check the block the player is standing in and immediate neighbours
+        // (vanilla portal teleport fires from the player's feet block)
+        if (isNetherPortalInStargate(from)) {
+            event.setCancelled(true);
+            WXTLogger.prettyLog(Level.FINE, false,
+                "Cancelled vanilla portal teleport for player '" + event.getPlayer().getName()
+                + "' — block is part of a WormholeXTreme stargate.");
+        }
+    }
+
+    /**
+     * Cancels vanilla nether-portal teleportation for non-player entities
+     * (mobs, minecarts, etc.) when the portal block belongs to a stargate.
+     */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onEntityPortal(EntityPortalEvent event) {
+        Block from = event.getFrom().getBlock();
+        if (isNetherPortalInStargate(from)) {
+            event.setCancelled(true);
+            WXTLogger.prettyLog(Level.FINE, false,
+                "Cancelled vanilla portal teleport for entity '" + event.getEntity().getType()
+                + "' — block is part of a WormholeXTreme stargate.");
+        }
+    }
+
+    /**
+     * Returns true if the given block, or any adjacent block, is a
+     * NETHER_PORTAL that is registered as part of a stargate. Checks
+     * neighbours because the player's feet may be one block off from the
+     * actual portal column.
+     */
+    private static boolean isNetherPortalInStargate(Block block) {
+        if (block == null) return false;
+        BlockFace[] faces = { BlockFace.SELF, BlockFace.NORTH, BlockFace.SOUTH,
+                              BlockFace.EAST, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN };
+        for (BlockFace face : faces) {
+            Block candidate = block.getRelative(face);
+            if (candidate.getType() == Material.NETHER_PORTAL
+                    && StargateManager.isBlockInGate(candidate)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @EventHandler(priority = EventPriority.NORMAL)

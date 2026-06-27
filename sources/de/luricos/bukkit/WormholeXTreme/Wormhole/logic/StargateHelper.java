@@ -42,7 +42,7 @@ public class StargateHelper {
     }
 
 
-    private static final byte StargateSaveVersion = 8;
+    private static final byte StargateSaveVersion = 9;
     private static final ConcurrentHashMap<String, StargateShape> stargateShapes = new ConcurrentHashMap<>();
     private static final byte[] emptyBlock = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
@@ -477,20 +477,27 @@ public class StargateHelper {
     /* JADX WARN: Removed duplicated region for block: B:57:0x022d  */
     /* JADX WARN: Removed duplicated region for block: B:70:0x0264  */
     /* JADX WARN: Removed duplicated region for block: B:78:0x028e  */
-            public static void loadShapes() {
+    public static void loadShapes() {
         java.io.File externalDir = new java.io.File("plugins/WormholeXTreme/GateShapes/");
 
-        // On first run, extract bundled shapes to the external directory
+        // Always ensure the directory exists
         if (!externalDir.exists()) {
             externalDir.mkdirs();
-            String[] bundled = {"Dakto.shape","Horizontal.shape","HorizontalSignDial.shape",
-                                "Large.shape","Minimal.shape","Small.shape","SmallSignDial.shape",
-                                "Standard.shape","StandardSignDial.shape"};
-            for (String name : bundled) {
+        }
+
+        // Extract any bundled shapes that are missing from the external directory
+        String[] bundled = {"Horizontal.shape", "HorizontalSignDial.shape",
+                            "Large.shape", "Minimal.shape", "Small.shape", "SmallSignDial.shape",
+                            "Standard.shape", "StandardSignDial.shape"};
+        for (String name : bundled) {
+            java.io.File dest = new java.io.File(externalDir, name);
+            if (!dest.exists()) {
                 try {
                     java.io.InputStream is = WormholeXTreme.class.getResourceAsStream("/GateShapes/" + name);
-                    if (is == null) continue;
-                    java.io.File dest = new java.io.File(externalDir, name);
+                    if (is == null) {
+                        WXTLogger.prettyLog(java.util.logging.Level.WARNING, false, "Bundled shape not found in jar: " + name);
+                        continue;
+                    }
                     java.nio.file.Files.copy(is, dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                     is.close();
                     WXTLogger.prettyLog(java.util.logging.Level.INFO, false, "Extracted shape: " + name);
@@ -543,9 +550,12 @@ public class StargateHelper {
             case 7:
                 WXTLogger.prettyLog(Level.FINE, false, "Parsing version data: Using parser Version 7 for '" + name + '\"');
                 return parseVersionedDataV7(w, s, byteBuff);
-            case StargateSaveVersion /* 8 */:
+            case 8:
                 WXTLogger.prettyLog(Level.FINE, false, "Parsing version data: Using parser Version 8 for '" + name + '\"');
                 return parseVersionedDataV8(w, s, byteBuff);
+            case StargateSaveVersion /* 9 */:
+                WXTLogger.prettyLog(Level.FINE, false, "Parsing version data: Using parser Version 9 for '" + name + '\"');
+                return parseVersionedDataV9(w, s, byteBuff);
             default:
                 return null;
         }
@@ -1053,11 +1063,156 @@ public class StargateHelper {
         }
     }
 
+    private static Material parseMaterialName(String name) {
+        if (name == null || name.isEmpty() || name.equals("null")) return null;
+        try {
+            return Material.valueOf(name.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            WXTLogger.prettyLog(Level.WARNING, false, "Unknown material name in save data: " + name);
+            return null;
+        }
+    }
+
+    private static Stargate parseVersionedDataV9(World w, Stargate s, ByteBuffer byteBuff) {
+        byte[] locArray = new byte[32];
+        byte[] blocArray = new byte[12];
+        byteBuff.get(blocArray);
+        s.setGateDialLeverBlock(DataUtils.blockFromBytes(blocArray, w));
+        byteBuff.get(blocArray);
+        s.setGateIrisLeverBlock(DataUtils.blockFromBytes(blocArray, w));
+        byteBuff.get(blocArray);
+        s.setGateNameBlockHolder(DataUtils.blockFromBytes(blocArray, w));
+        byteBuff.get(locArray);
+        s.setGatePlayerTeleportLocation(DataUtils.locationFromBytes(locArray, w));
+        byteBuff.get(locArray);
+        s.setGateMinecartTeleportLocation(DataUtils.locationFromBytes(locArray, w));
+        s.setGateSignPowered(DataUtils.byteToBoolean(byteBuff.get()));
+        byteBuff.get(blocArray);
+        s.setGateDialSignIndex(byteBuff.getInt());
+        s.setGateTempSignTarget(byteBuff.getLong());
+        if (s.isGateSignPowered()) {
+            s.setGateDialSignBlock(DataUtils.blockFromBytes(blocArray, w));
+            if (w.isChunkLoaded(s.getGateDialSignBlock().getChunk())) {
+                try {
+                    s.setGateDialSign((Sign) s.getGateDialSignBlock().getState());
+                } catch (Exception e) {
+                    WXTLogger.prettyLog(Level.WARNING, false, "[V9] Unable to get sign for stargate: " + s.getGateName() + " and will be unable to change dial target.");
+                    WXTLogger.prettyLog(Level.FINE, false, "[V9] Stacktrace: " + e.getMessage());
+                }
+            }
+        }
+        s.setGateActive(DataUtils.byteToBoolean(byteBuff.get()));
+        s.setGateTempTargetId(byteBuff.getLong());
+        int facingSize = byteBuff.getInt();
+        byte[] strBytes = new byte[facingSize];
+        byteBuff.get(strBytes);
+        String faceStr = new String(strBytes);
+        s.setGateFacing(BlockFace.valueOf(faceStr));
+        s.getGatePlayerTeleportLocation().setYaw(WorldUtils.getDegreesFromBlockFace(s.getGateFacing()).floatValue());
+        s.getGatePlayerTeleportLocation().setPitch(0.0f);
+        s.getGateMinecartTeleportLocation().setYaw(WorldUtils.getDegreesFromBlockFace(s.getGateFacing()).floatValue());
+        s.getGateMinecartTeleportLocation().setPitch(0.0f);
+        int idcLen = byteBuff.getInt();
+        byte[] idcBytes = new byte[idcLen];
+        byteBuff.get(idcBytes);
+        s.setGateIrisDeactivationCode(new String(idcBytes));
+        s.setGateIrisActive(DataUtils.byteToBoolean(byteBuff.get()));
+        s.setGateIrisDefaultActive(s.isGateIrisActive());
+        s.setGateLightsActive(DataUtils.byteToBoolean(byteBuff.get()));
+        boolean isRedstoneDA = DataUtils.byteToBoolean(byteBuff.get());
+        byteBuff.get(blocArray);
+        if (isRedstoneDA) {
+            s.setGateRedstoneDialActivationBlock(DataUtils.blockFromBytes(blocArray, w));
+        }
+        boolean isRedstoneSA = DataUtils.byteToBoolean(byteBuff.get());
+        byteBuff.get(blocArray);
+        if (isRedstoneSA) {
+            s.setGateRedstoneSignActivationBlock(DataUtils.blockFromBytes(blocArray, w));
+        }
+        boolean isRedstoneGA = DataUtils.byteToBoolean(byteBuff.get());
+        byteBuff.get(blocArray);
+        if (isRedstoneGA) {
+            s.setGateRedstoneGateActivatedBlock(DataUtils.blockFromBytes(blocArray, w));
+        }
+        s.setGateRedstonePowered(DataUtils.byteToBoolean(byteBuff.get()));
+        s.setGateCustom(DataUtils.byteToBoolean(byteBuff.get()));
+        // V9: materials stored as length-prefixed UTF-8 name strings
+        int structMatLen = byteBuff.getInt();
+        byte[] structMatBytes = new byte[structMatLen]; byteBuff.get(structMatBytes);
+        s.setGateCustomStructureMaterial(parseMaterialName(new String(structMatBytes)));
+        int portalMatLen = byteBuff.getInt();
+        byte[] portalMatBytes = new byte[portalMatLen]; byteBuff.get(portalMatBytes);
+        s.setGateCustomPortalMaterial(parseMaterialName(new String(portalMatBytes)));
+        int lightMatLen = byteBuff.getInt();
+        byte[] lightMatBytes = new byte[lightMatLen]; byteBuff.get(lightMatBytes);
+        s.setGateCustomLightMaterial(parseMaterialName(new String(lightMatBytes)));
+        int irisMatLen = byteBuff.getInt();
+        byte[] irisMatBytes = new byte[irisMatLen]; byteBuff.get(irisMatBytes);
+        s.setGateCustomIrisMaterial(parseMaterialName(new String(irisMatBytes)));
+        s.setGateCustomWooshTicks(byteBuff.getInt());
+        s.setGateCustomLightTicks(byteBuff.getInt());
+        s.setGateCustomWooshDepth(byteBuff.getInt());
+        s.setGateCustomWooshDepthSquared(s.getGateCustomWooshDepth() >= 0 ? s.getGateCustomWooshDepth() * s.getGateCustomWooshDepth() : -1);
+        int numStructureBlocks = byteBuff.getInt();
+        for (int i = 0; i < numStructureBlocks; i++) {
+            byteBuff.get(blocArray);
+            Block bl = DataUtils.blockFromBytes(blocArray, w);
+            s.getGateStructureBlocks().add(bl.getLocation());
+        }
+        int numPortalBlocks = byteBuff.getInt();
+        for (int i2 = 0; i2 < numPortalBlocks; i2++) {
+            byteBuff.get(blocArray);
+            Block bl2 = DataUtils.blockFromBytes(blocArray, w);
+            s.getGatePortalBlocks().add(bl2.getLocation());
+        }
+        int numLightLayers = byteBuff.getInt();
+        while (s.getGateLightBlocks().size() < numLightLayers) {
+            s.getGateLightBlocks().add(new ArrayList<>());
+        }
+        for (int i3 = 0; i3 < numLightLayers; i3++) {
+            int numLightBlocks = byteBuff.getInt();
+            for (int j = 0; j < numLightBlocks; j++) {
+                byteBuff.get(blocArray);
+                Block bl3 = DataUtils.blockFromBytes(blocArray, w);
+                s.getGateLightBlocks().get(i3).add(bl3.getLocation());
+            }
+        }
+        int numWooshLayers = byteBuff.getInt();
+        while (s.getGateWooshBlocks().size() < numWooshLayers) {
+            s.getGateWooshBlocks().add(new ArrayList<>());
+        }
+        for (int i4 = 0; i4 < numWooshLayers; i4++) {
+            int numWooshBlocks = byteBuff.getInt();
+            for (int j2 = 0; j2 < numWooshBlocks; j2++) {
+                byteBuff.get(blocArray);
+                Block bl4 = DataUtils.blockFromBytes(blocArray, w);
+                s.getGateWooshBlocks().get(i4).add(bl4.getLocation());
+            }
+        }
+        if (byteBuff.remaining() > 0) {
+            WXTLogger.prettyLog(Level.WARNING, false, "While loading gate, not all byte data was read. This could be bad: " + byteBuff.remaining());
+        }
+        return s;
+    }
+
+    private static byte[] materialNameBytes(Material m) {
+        if (m == null) return "null".getBytes();
+        return m.name().getBytes();
+    }
+
     public static byte[] stargatetoBinary(Stargate s) {
         try {
             byte[] utfFaceBytes = s.getGateFacing().toString().getBytes("UTF8");
             byte[] utfIdcBytes = s.getGateIrisDeactivationCode().getBytes("UTF8");
-            int size = 222 + (s.getGateStructureBlocks().size() * 12) + (s.getGatePortalBlocks().size() * 12);
+            // V9: materials stored as length-prefixed name strings instead of int IDs
+            byte[] structMatBytes = materialNameBytes(s.getGateCustomStructureMaterial());
+            byte[] portalMatBytes = materialNameBytes(s.getGateCustomPortalMaterial());
+            byte[] lightMatBytes  = materialNameBytes(s.getGateCustomLightMaterial());
+            byte[] irisMatBytes   = materialNameBytes(s.getGateCustomIrisMaterial());
+            // Base size: 222 was for 4x int (16 bytes) materials; now replaced by 4x (4-byte-len + name)
+            // 222 - 16 (old int IDs) = 206 fixed bytes; add 4*4=16 for the new length-prefix ints
+            int size = 206 + 16 + structMatBytes.length + portalMatBytes.length + lightMatBytes.length + irisMatBytes.length
+                     + (s.getGateStructureBlocks().size() * 12) + (s.getGatePortalBlocks().size() * 12);
             int numIntsOther = 2;
             for (int i = 0; i < s.getGateLightBlocks().size(); i++) {
                 if (s.getGateLightBlocks().get(i) != null) {
@@ -1125,10 +1280,11 @@ public class StargateHelper {
             }
             dataArr.put(s.isGateRedstonePowered() ? (byte) 1 : (byte) 0);
             dataArr.put(s.isGateCustom() ? (byte) 1 : (byte) 0);
-            dataArr.putInt(s.getGateCustomStructureMaterial() != null ? s.getGateCustomStructureMaterial().getId() : -1);
-            dataArr.putInt(s.getGateCustomPortalMaterial() != null ? s.getGateCustomPortalMaterial().getId() : -1);
-            dataArr.putInt(s.getGateCustomLightMaterial() != null ? s.getGateCustomLightMaterial().getId() : -1);
-            dataArr.putInt(s.getGateCustomIrisMaterial() != null ? s.getGateCustomIrisMaterial().getId() : -1);
+            // V9: write material names as length-prefixed UTF-8 strings
+            dataArr.putInt(structMatBytes.length); dataArr.put(structMatBytes);
+            dataArr.putInt(portalMatBytes.length); dataArr.put(portalMatBytes);
+            dataArr.putInt(lightMatBytes.length);  dataArr.put(lightMatBytes);
+            dataArr.putInt(irisMatBytes.length);   dataArr.put(irisMatBytes);
             dataArr.putInt(s.getGateCustomWooshTicks());
             dataArr.putInt(s.getGateCustomLightTicks());
             dataArr.putInt(s.getGateCustomWooshDepth());

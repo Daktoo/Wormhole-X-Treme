@@ -5,6 +5,7 @@ import de.luricos.bukkit.WormholeXTreme.Wormhole.exceptions.WormholePlayerNotFou
 import de.luricos.bukkit.WormholeXTreme.Wormhole.exceptions.WormholePlayerNotOnlineException;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.Stargate;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.utils.WXTLogger;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -79,7 +80,8 @@ public class WormholePlayerManager {
 
     public static void registerAllOnlinePlayers() {
         WXTLogger.prettyLog(Level.FINE, false, "Registering all online players as WormholePlayers.");
-        for (Player player : Bukkit.getServer().getOnlinePlayers()) {
+        Collection<? extends Player> online = Bukkit.getServer().getOnlinePlayers();
+        for (Player player : online) {
             registerPlayer(player);
         }
     }
