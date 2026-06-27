@@ -1012,7 +1012,6 @@ public class StargateHelper {
         s.setGateRedstonePowered(DataUtils.byteToBoolean(byteBuff.get()));
         s.setGateCustom(DataUtils.byteToBoolean(byteBuff.get()));
         
-        // Read custom materials as string names (matching the save format)
         int structMatLen = byteBuff.getInt();
         byte[] structMatBytes = new byte[structMatLen];
         byteBuff.get(structMatBytes);
@@ -1289,7 +1288,7 @@ public class StargateHelper {
             byte[] portalMatBytes = materialNameBytes(s.getGateCustomPortalMaterial());
             byte[] lightMatBytes  = materialNameBytes(s.getGateCustomLightMaterial());
             byte[] irisMatBytes   = materialNameBytes(s.getGateCustomIrisMaterial());
-            int size = 206 + 16 + structMatBytes.length + portalMatBytes.length + lightMatBytes.length + irisMatBytes.length
+            int size = 230 + structMatBytes.length + portalMatBytes.length + lightMatBytes.length + irisMatBytes.length
                      + (s.getGateStructureBlocks().size() * 12) + (s.getGatePortalBlocks().size() * 12);
             for (int i = 0; i < s.getGateLightBlocks().size(); i++) {
                 size += 4; 
