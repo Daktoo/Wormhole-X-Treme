@@ -164,7 +164,7 @@ public class Wormhole implements CommandExecutor, TabCompleter {
     }
 
     private static void sendHelp(CommandSender sender) {
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§6--- WormholeXTreme Commands ---");
+        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "WormholeXTreme Commands §3::");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole activate_timeout §8[secs]");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole timeout|shutdown_timeout §8[secs]");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole cooldown §8<true|false|one|two|three> [secs]");

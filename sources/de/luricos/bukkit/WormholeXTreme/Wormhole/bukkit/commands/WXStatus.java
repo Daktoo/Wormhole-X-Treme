@@ -48,9 +48,7 @@ public class WXStatus implements CommandExecutor, TabCompleter {
     }
 
     private void printStatus(CommandSender sender) {
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§6----------------------------");
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "WormholeXTreme System Status");
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§6----------------------------");
+        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "WormholeXTreme System Status: §3::");
 
         boolean dbOk = StargateDBManager.isConnected();
         boolean wwOk = WormholeWorldsSupport.isEnabled();
@@ -60,8 +58,7 @@ public class WXStatus implements CommandExecutor, TabCompleter {
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "DB Connection: " + status(dbOk));
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "WXW Link:      " + status(wwOk));
 
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§6----------------------------");
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "Commands:");
+        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "Commands: §3::");
 
         WormholeXTreme plugin = WormholeXTreme.getThisPlugin();
         for (String cmd : PLUGIN_COMMANDS) {
@@ -75,7 +72,6 @@ public class WXStatus implements CommandExecutor, TabCompleter {
             sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "  /" + cmd + ": " + status(ok));
         }
 
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§6----------------------------");
     }
 
     private static String status(boolean ok) {
