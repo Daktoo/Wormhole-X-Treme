@@ -28,10 +28,6 @@ import org.bukkit.block.Sign;
 /* JADX INFO: loaded from: WormholeXTreme.jar:de/luricos/bukkit/WormholeXTreme/Wormhole/logic/StargateHelper.class */
 public class StargateHelper {
 
-    /**
-     * Legacy material lookup by numeric ID.
-     * Used for loading old save data. Returns null if not found.
-     */
     private static Material getMaterialById(int id) {
         for (Material m : Material.values()) {
             try {
@@ -480,12 +476,12 @@ public class StargateHelper {
     public static void loadShapes() {
         java.io.File externalDir = new java.io.File("plugins/WormholeXTreme/GateShapes/");
 
-        // Always ensure the directory exists
+
         if (!externalDir.exists()) {
             externalDir.mkdirs();
         }
 
-        // Extract any bundled shapes that are missing from the external directory
+
         String[] bundled = {"Horizontal.shape", "HorizontalSignDial.shape",
                             "Large.shape", "Minimal.shape", "Small.shape", "SmallSignDial.shape",
                             "Standard.shape", "StandardSignDial.shape"};
@@ -507,7 +503,6 @@ public class StargateHelper {
             }
         }
 
-        // Load all .shape files from the external directory
         java.io.File[] shapeFiles = externalDir.listFiles((dir, name) -> name.endsWith(".shape"));
         if (shapeFiles != null) {
             for (java.io.File shapeFile : shapeFiles) {
@@ -959,19 +954,43 @@ public class StargateHelper {
         }
         s.setGateActive(DataUtils.byteToBoolean(byteBuff.get()));
         s.setGateTempTargetId(byteBuff.getLong());
-        int facingSize = byteBuff.getInt();
-        byte[] strBytes = new byte[facingSize];
-        byteBuff.get(strBytes);
-        String faceStr = new String(strBytes);
-        s.setGateFacing(BlockFace.valueOf(faceStr));
+        
+        if (byteBuff.remaining() >= 4) {
+            int facingSize = byteBuff.getInt();
+            if (facingSize < 0 || facingSize > byteBuff.remaining()) {
+                WXTLogger.prettyLog(Level.WARNING, false, "[V8] Buffer underflow: invalid facing string size (" + facingSize + ") for: " + s.getGateName());
+                s.setGateFacing(BlockFace.NORTH); 
+            } else {
+                byte[] strBytes = new byte[facingSize];
+                byteBuff.get(strBytes);
+                String faceStr = new String(strBytes);
+                s.setGateFacing(BlockFace.valueOf(faceStr));
+            }
+        } else {
+            WXTLogger.prettyLog(Level.WARNING, false, "[V8] Buffer underflow: insufficient data for facing size in: " + s.getGateName());
+            s.setGateFacing(BlockFace.NORTH);
+        }
+        
         s.getGatePlayerTeleportLocation().setYaw(WorldUtils.getDegreesFromBlockFace(s.getGateFacing()).floatValue());
         s.getGatePlayerTeleportLocation().setPitch(0.0f);
         s.getGateMinecartTeleportLocation().setYaw(WorldUtils.getDegreesFromBlockFace(s.getGateFacing()).floatValue());
         s.getGateMinecartTeleportLocation().setPitch(0.0f);
-        int idcLen = byteBuff.getInt();
-        byte[] idcBytes = new byte[idcLen];
-        byteBuff.get(idcBytes);
-        s.setGateIrisDeactivationCode(new String(idcBytes));
+        
+        if (byteBuff.remaining() >= 4) {
+            int idcLen = byteBuff.getInt();
+            if (idcLen < 0 || idcLen > byteBuff.remaining()) {
+                WXTLogger.prettyLog(Level.WARNING, false, "[V8] Buffer underflow: invalid iris deactivation code size (" + idcLen + ") for: " + s.getGateName());
+                s.setGateIrisDeactivationCode("");
+            } else {
+                byte[] idcBytes = new byte[idcLen];
+                byteBuff.get(idcBytes);
+                s.setGateIrisDeactivationCode(new String(idcBytes));
+            }
+        } else {
+            WXTLogger.prettyLog(Level.WARNING, false, "[V8] Buffer underflow: insufficient data for iris deactivation code size in: " + s.getGateName());
+            s.setGateIrisDeactivationCode("");
+        }
+        
         s.setGateIrisActive(DataUtils.byteToBoolean(byteBuff.get()));
         s.setGateIrisDefaultActive(s.isGateIrisActive());
         s.setGateLightsActive(DataUtils.byteToBoolean(byteBuff.get()));
@@ -1004,42 +1023,91 @@ public class StargateHelper {
         s.setGateCustomLightTicks(byteBuff.getInt());
         s.setGateCustomWooshDepth(byteBuff.getInt());
         s.setGateCustomWooshDepthSquared(s.getGateCustomWooshDepth() >= 0 ? s.getGateCustomWooshDepth() * s.getGateCustomWooshDepth() : -1);
-        int numStructureBlocks = byteBuff.getInt();
-        for (int i = 0; i < numStructureBlocks; i++) {
-            byteBuff.get(blocArray);
-            Block bl = DataUtils.blockFromBytes(blocArray, w);
-            s.getGateStructureBlocks().add(bl.getLocation());
-        }
-        int numPortalBlocks = byteBuff.getInt();
-        for (int i2 = 0; i2 < numPortalBlocks; i2++) {
-            byteBuff.get(blocArray);
-            Block bl2 = DataUtils.blockFromBytes(blocArray, w);
-            s.getGatePortalBlocks().add(bl2.getLocation());
-        }
-        int numLightLayers = byteBuff.getInt();
-        while (s.getGateLightBlocks().size() < numLightLayers) {
-            s.getGateLightBlocks().add(new ArrayList<>());
-        }
-        for (int i3 = 0; i3 < numLightLayers; i3++) {
-            int numLightBlocks = byteBuff.getInt();
-            for (int j = 0; j < numLightBlocks; j++) {
+        
+
+        if (byteBuff.remaining() >= 4) {
+            int numStructureBlocks = byteBuff.getInt();
+            for (int i = 0; i < numStructureBlocks; i++) {
+                if (byteBuff.remaining() < blocArray.length) {
+                    WXTLogger.prettyLog(Level.WARNING, false, "[V8] Buffer underflow while reading structure blocks for: " + s.getGateName());
+                    break;
+                }
                 byteBuff.get(blocArray);
-                Block bl3 = DataUtils.blockFromBytes(blocArray, w);
-                s.getGateLightBlocks().get(i3).add(bl3.getLocation());
+                Block bl = DataUtils.blockFromBytes(blocArray, w);
+                s.getGateStructureBlocks().add(bl.getLocation());
             }
+        } else {
+            WXTLogger.prettyLog(Level.WARNING, false, "[V8] Buffer underflow: insufficient data for structure block count in: " + s.getGateName());
         }
-        int numWooshLayers = byteBuff.getInt();
-        while (s.getGateWooshBlocks().size() < numWooshLayers) {
-            s.getGateWooshBlocks().add(new ArrayList<>());
-        }
-        for (int i4 = 0; i4 < numWooshLayers; i4++) {
-            int numWooshBlocks = byteBuff.getInt();
-            for (int j2 = 0; j2 < numWooshBlocks; j2++) {
+        
+
+        if (byteBuff.remaining() >= 4) {
+            int numPortalBlocks = byteBuff.getInt();
+            for (int i2 = 0; i2 < numPortalBlocks; i2++) {
+                if (byteBuff.remaining() < blocArray.length) {
+                    WXTLogger.prettyLog(Level.WARNING, false, "[V8] Buffer underflow while reading portal blocks for: " + s.getGateName());
+                    break;
+                }
                 byteBuff.get(blocArray);
-                Block bl4 = DataUtils.blockFromBytes(blocArray, w);
-                s.getGateWooshBlocks().get(i4).add(bl4.getLocation());
+                Block bl2 = DataUtils.blockFromBytes(blocArray, w);
+                s.getGatePortalBlocks().add(bl2.getLocation());
             }
+        } else {
+            WXTLogger.prettyLog(Level.WARNING, false, "[V8] Buffer underflow: insufficient data for portal block count in: " + s.getGateName());
         }
+        
+
+        if (byteBuff.remaining() >= 4) {
+            int numLightLayers = byteBuff.getInt();
+            while (s.getGateLightBlocks().size() < numLightLayers) {
+                s.getGateLightBlocks().add(new ArrayList<>());
+            }
+            for (int i3 = 0; i3 < numLightLayers; i3++) {
+                if (byteBuff.remaining() < 4) {
+                    WXTLogger.prettyLog(Level.WARNING, false, "[V8] Buffer underflow while reading light layer count for: " + s.getGateName());
+                    break;
+                }
+                int numLightBlocks = byteBuff.getInt();
+                for (int j = 0; j < numLightBlocks; j++) {
+                    if (byteBuff.remaining() < blocArray.length) {
+                        WXTLogger.prettyLog(Level.WARNING, false, "[V8] Buffer underflow while reading light blocks for: " + s.getGateName());
+                        break;
+                    }
+                    byteBuff.get(blocArray);
+                    Block bl3 = DataUtils.blockFromBytes(blocArray, w);
+                    s.getGateLightBlocks().get(i3).add(bl3.getLocation());
+                }
+            }
+        } else {
+            WXTLogger.prettyLog(Level.WARNING, false, "[V8] Buffer underflow: insufficient data for light layer count in: " + s.getGateName());
+        }
+        
+
+        if (byteBuff.remaining() >= 4) {
+            int numWooshLayers = byteBuff.getInt();
+            while (s.getGateWooshBlocks().size() < numWooshLayers) {
+                s.getGateWooshBlocks().add(new ArrayList<>());
+            }
+            for (int i4 = 0; i4 < numWooshLayers; i4++) {
+                if (byteBuff.remaining() < 4) {
+                    WXTLogger.prettyLog(Level.WARNING, false, "[V8] Buffer underflow while reading woosh layer count for: " + s.getGateName());
+                    break;
+                }
+                int numWooshBlocks = byteBuff.getInt();
+                for (int j2 = 0; j2 < numWooshBlocks; j2++) {
+                    if (byteBuff.remaining() < blocArray.length) {
+                        WXTLogger.prettyLog(Level.WARNING, false, "[V8] Buffer underflow while reading woosh blocks for: " + s.getGateName());
+                        break;
+                    }
+                    byteBuff.get(blocArray);
+                    Block bl4 = DataUtils.blockFromBytes(blocArray, w);
+                    s.getGateWooshBlocks().get(i4).add(bl4.getLocation());
+                }
+            }
+        } else {
+            WXTLogger.prettyLog(Level.WARNING, false, "[V8] Buffer underflow: insufficient data for woosh layer count in: " + s.getGateName());
+        }
+        
         if (byteBuff.remaining() > 0) {
             WXTLogger.prettyLog(Level.WARNING, false, "While loading gate, not all byte data was read. This could be bad: " + byteBuff.remaining());
         }
@@ -1136,7 +1204,6 @@ public class StargateHelper {
         }
         s.setGateRedstonePowered(DataUtils.byteToBoolean(byteBuff.get()));
         s.setGateCustom(DataUtils.byteToBoolean(byteBuff.get()));
-        // V9: materials stored as length-prefixed UTF-8 name strings
         int structMatLen = byteBuff.getInt();
         byte[] structMatBytes = new byte[structMatLen]; byteBuff.get(structMatBytes);
         s.setGateCustomStructureMaterial(parseMaterialName(new String(structMatBytes)));
@@ -1204,13 +1271,10 @@ public class StargateHelper {
         try {
             byte[] utfFaceBytes = s.getGateFacing().toString().getBytes("UTF8");
             byte[] utfIdcBytes = s.getGateIrisDeactivationCode().getBytes("UTF8");
-            // V9: materials stored as length-prefixed name strings instead of int IDs
             byte[] structMatBytes = materialNameBytes(s.getGateCustomStructureMaterial());
             byte[] portalMatBytes = materialNameBytes(s.getGateCustomPortalMaterial());
             byte[] lightMatBytes  = materialNameBytes(s.getGateCustomLightMaterial());
             byte[] irisMatBytes   = materialNameBytes(s.getGateCustomIrisMaterial());
-            // Base size: 222 was for 4x int (16 bytes) materials; now replaced by 4x (4-byte-len + name)
-            // 222 - 16 (old int IDs) = 206 fixed bytes; add 4*4=16 for the new length-prefix ints
             int size = 206 + 16 + structMatBytes.length + portalMatBytes.length + lightMatBytes.length + irisMatBytes.length
                      + (s.getGateStructureBlocks().size() * 12) + (s.getGatePortalBlocks().size() * 12);
             int numIntsOther = 2;
@@ -1280,7 +1344,6 @@ public class StargateHelper {
             }
             dataArr.put(s.isGateRedstonePowered() ? (byte) 1 : (byte) 0);
             dataArr.put(s.isGateCustom() ? (byte) 1 : (byte) 0);
-            // V9: write material names as length-prefixed UTF-8 strings
             dataArr.putInt(structMatBytes.length); dataArr.put(structMatBytes);
             dataArr.putInt(portalMatBytes.length); dataArr.put(portalMatBytes);
             dataArr.putInt(lightMatBytes.length);  dataArr.put(lightMatBytes);
