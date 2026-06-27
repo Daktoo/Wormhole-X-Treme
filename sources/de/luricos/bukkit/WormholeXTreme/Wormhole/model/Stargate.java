@@ -312,6 +312,23 @@ public class Stargate {
         for (Location loc : getGatePortalBlocks()) {
             Block blk = getGateWorld().getBlockAt(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
             blk.setType(material);
+            
+            // Set NETHER_PORTAL orientation to match gate facing
+            if (material == Material.NETHER_PORTAL) {
+                org.bukkit.block.data.BlockData blockData = blk.getBlockData();
+                if (blockData instanceof org.bukkit.block.data.type.NetherPortal) {
+                    org.bukkit.block.data.type.NetherPortal portal = (org.bukkit.block.data.type.NetherPortal) blockData;
+                    // NORTH/SOUTH facing gates → EAST_WEST axis
+                    // EAST/WEST facing gates → NORTH_SOUTH axis
+                    if (getGateFacing() == org.bukkit.block.BlockFace.NORTH || getGateFacing() == org.bukkit.block.BlockFace.SOUTH) {
+                        portal.setAxis(org.bukkit.Axis.X); // EAST_WEST
+                    } else {
+                        portal.setAxis(org.bukkit.Axis.Z); // NORTH_SOUTH
+                    }
+                    blk.setBlockData(portal);
+                }
+            }
+            
             blk.getState().update();
         }
     }
