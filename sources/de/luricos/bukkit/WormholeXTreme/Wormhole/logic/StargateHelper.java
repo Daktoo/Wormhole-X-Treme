@@ -1011,14 +1011,28 @@ public class StargateHelper {
         }
         s.setGateRedstonePowered(DataUtils.byteToBoolean(byteBuff.get()));
         s.setGateCustom(DataUtils.byteToBoolean(byteBuff.get()));
-        int gateCustomStructureMaterial = byteBuff.getInt();
-        s.setGateCustomStructureMaterial(gateCustomStructureMaterial != -1 ? getMaterialById(gateCustomStructureMaterial) : null);
-        int gateCustomPortalMaterial = byteBuff.getInt();
-        s.setGateCustomPortalMaterial(gateCustomPortalMaterial != -1 ? getMaterialById(gateCustomPortalMaterial) : null);
-        int gateCustomLightMaterial = byteBuff.getInt();
-        s.setGateCustomLightMaterial(gateCustomLightMaterial != -1 ? getMaterialById(gateCustomLightMaterial) : null);
-        int gateCustomIrisMaterial = byteBuff.getInt();
-        s.setGateCustomIrisMaterial(gateCustomIrisMaterial != -1 ? getMaterialById(gateCustomIrisMaterial) : null);
+        
+        // Read custom materials as string names (matching the save format)
+        int structMatLen = byteBuff.getInt();
+        byte[] structMatBytes = new byte[structMatLen];
+        byteBuff.get(structMatBytes);
+        s.setGateCustomStructureMaterial(parseMaterialName(new String(structMatBytes)));
+        
+        int portalMatLen = byteBuff.getInt();
+        byte[] portalMatBytes = new byte[portalMatLen];
+        byteBuff.get(portalMatBytes);
+        s.setGateCustomPortalMaterial(parseMaterialName(new String(portalMatBytes)));
+        
+        int lightMatLen = byteBuff.getInt();
+        byte[] lightMatBytes = new byte[lightMatLen];
+        byteBuff.get(lightMatBytes);
+        s.setGateCustomLightMaterial(parseMaterialName(new String(lightMatBytes)));
+        
+        int irisMatLen = byteBuff.getInt();
+        byte[] irisMatBytes = new byte[irisMatLen];
+        byteBuff.get(irisMatBytes);
+        s.setGateCustomIrisMaterial(parseMaterialName(new String(irisMatBytes)));
+        
         s.setGateCustomWooshTicks(byteBuff.getInt());
         s.setGateCustomLightTicks(byteBuff.getInt());
         s.setGateCustomWooshDepth(byteBuff.getInt());
