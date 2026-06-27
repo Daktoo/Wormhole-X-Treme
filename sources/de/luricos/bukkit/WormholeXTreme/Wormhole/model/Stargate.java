@@ -313,19 +313,17 @@ public class Stargate {
             Block blk = getGateWorld().getBlockAt(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
             blk.setType(material);
             
-            // Set NETHER_PORTAL orientation to match gate facing
+       
             if (material == Material.NETHER_PORTAL) {
                 org.bukkit.block.data.BlockData blockData = blk.getBlockData();
-                if (blockData instanceof org.bukkit.block.data.type.NetherPortal) {
-                    org.bukkit.block.data.type.NetherPortal portal = (org.bukkit.block.data.type.NetherPortal) blockData;
-                    // NORTH/SOUTH facing gates → EAST_WEST axis
-                    // EAST/WEST facing gates → NORTH_SOUTH axis
+                if (blockData instanceof org.bukkit.block.data.Orientable) {
+                    org.bukkit.block.data.Orientable orientable = (org.bukkit.block.data.Orientable) blockData;
                     if (getGateFacing() == org.bukkit.block.BlockFace.NORTH || getGateFacing() == org.bukkit.block.BlockFace.SOUTH) {
-                        portal.setAxis(org.bukkit.Axis.X); // EAST_WEST
+                        orientable.setAxis(org.bukkit.Axis.X); 
                     } else {
-                        portal.setAxis(org.bukkit.Axis.Z); // NORTH_SOUTH
+                        orientable.setAxis(org.bukkit.Axis.Z); 
                     }
-                    blk.setBlockData(portal);
+                    blk.setBlockData(orientable);
                 }
             }
             
