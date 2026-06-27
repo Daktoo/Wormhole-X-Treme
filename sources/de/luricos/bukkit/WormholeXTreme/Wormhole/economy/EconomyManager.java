@@ -15,7 +15,6 @@ import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.RegisteredServiceProvider;
 
 public class EconomyManager {
 
@@ -64,7 +63,7 @@ public class EconomyManager {
 
         if (!economyEnabled) {
             WXTLogger.prettyLog(Level.INFO, false,
-                    "[Economy] No economy plugin found - economy features disabled.");
+                    "[Economy] No economy plugin found — economy features disabled.");
         }
 
         loadShapePrices(knownShapeNames);
@@ -77,23 +76,26 @@ public class EconomyManager {
         }
         try {
             Class<?> economyClass = Class.forName("net.milkbowl.vault.economy.Economy");
-            @SuppressWarnings("unchecked")
-            RegisteredServiceProvider<?> rsp =
-                    Bukkit.getServicesManager().getRegistration(
-                            (Class<Object>) economyClass);
+            Method getRegistration = Bukkit.getServicesManager().getClass()
+                    .getMethod("getRegistration", Class.class);
+            Object rsp = getRegistration.invoke(Bukkit.getServicesManager(), economyClass);
             if (rsp == null) {
                 WXTLogger.prettyLog(Level.FINE, false,
                         "[Economy] Vault present but no Economy provider registered.");
                 return false;
             }
-            vaultEconomy = rsp.getProvider();
+            Method getProvider = rsp.getClass().getMethod("getProvider");
+            vaultEconomy = getProvider.invoke(rsp);
             vaultHas = economyClass.getMethod("has", Player.class, double.class);
             vaultWithdraw = economyClass.getMethod("withdrawPlayer", Player.class, double.class);
             Class<?> responseClass = Class.forName("net.milkbowl.vault.economy.EconomyResponse");
             vaultIsSuccess = responseClass.getMethod("transactionSuccess");
+            WXTLogger.prettyLog(Level.INFO, false,
+                    "[Economy] Vault Economy provider: "
+                    + vaultEconomy.getClass().getSimpleName());
             return true;
         } catch (Exception e) {
-            WXTLogger.prettyLog(Level.FINE, false,
+            WXTLogger.prettyLog(Level.WARNING, false,
                     "[Economy] Vault hook failed: " + e.getMessage());
             return false;
         }
