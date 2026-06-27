@@ -95,6 +95,19 @@ public class Stargate {
                         getGateAnimatedBlocks().add(b);
                         StargateManager.getOpeningAnimationBlocks().put(l, b);
                         b.setType(wooshMaterial);
+                        
+                        if (wooshMaterial == Material.NETHER_PORTAL) {
+                            org.bukkit.block.data.BlockData blockData = b.getBlockData();
+                            if (blockData instanceof org.bukkit.block.data.Orientable) {
+                                org.bukkit.block.data.Orientable orientable = (org.bukkit.block.data.Orientable) blockData;
+                                if (getGateFacing() == org.bukkit.block.BlockFace.NORTH || getGateFacing() == org.bukkit.block.BlockFace.SOUTH) {
+                                    orientable.setAxis(org.bukkit.Axis.X);
+                                } else {
+                                    orientable.setAxis(org.bukkit.Axis.Z);
+                                }
+                                b.setBlockData(orientable);
+                            }
+                        }
                     }
                     WXTLogger.prettyLog(Level.FINER, false, getGateName() + " Woosh Adding: " + getGateAnimationStep3D() + " Woosh Block Size: " + wooshBlockStep.size());
                 }
@@ -133,6 +146,20 @@ public class Stargate {
             for (Location block : getGatePortalBlocks()) {
                 Block r = getGateWorld().getBlockAt(block.getBlockX(), block.getBlockY(), block.getBlockZ()).getRelative(getGateFacing());
                 r.setType(wooshMaterial);
+                
+                if (wooshMaterial == Material.NETHER_PORTAL) {
+                    org.bukkit.block.data.BlockData blockData = r.getBlockData();
+                    if (blockData instanceof org.bukkit.block.data.Orientable) {
+                        org.bukkit.block.data.Orientable orientable = (org.bukkit.block.data.Orientable) blockData;
+                        if (getGateFacing() == org.bukkit.block.BlockFace.NORTH || getGateFacing() == org.bukkit.block.BlockFace.SOUTH) {
+                            orientable.setAxis(org.bukkit.Axis.X);
+                        } else {
+                            orientable.setAxis(org.bukkit.Axis.Z);
+                        }
+                        r.setBlockData(orientable);
+                    }
+                }
+                
                 getGateAnimatedBlocks().add(r);
                 StargateManager.getOpeningAnimationBlocks().put(r.getLocation(), r);
             }
@@ -146,6 +173,20 @@ public class Stargate {
             for (int i = size - start; i < size; i++) {
                 Block r2 = getGateAnimatedBlocks().get(i).getRelative(getGateFacing());
                 r2.setType(wooshMaterial);
+                
+                if (wooshMaterial == Material.NETHER_PORTAL) {
+                    org.bukkit.block.data.BlockData blockData = r2.getBlockData();
+                    if (blockData instanceof org.bukkit.block.data.Orientable) {
+                        org.bukkit.block.data.Orientable orientable = (org.bukkit.block.data.Orientable) blockData;
+                        if (getGateFacing() == org.bukkit.block.BlockFace.NORTH || getGateFacing() == org.bukkit.block.BlockFace.SOUTH) {
+                            orientable.setAxis(org.bukkit.Axis.X);
+                        } else {
+                            orientable.setAxis(org.bukkit.Axis.Z);
+                        }
+                        r2.setBlockData(orientable);
+                    }
+                }
+                
                 getGateAnimatedBlocks().add(r2);
                 StargateManager.getOpeningAnimationBlocks().put(r2.getLocation(), r2);
             }
