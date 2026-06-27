@@ -63,7 +63,7 @@ public class EconomyManager {
 
         if (!economyEnabled) {
             WXTLogger.prettyLog(Level.INFO, false,
-                    "[Economy] No economy plugin found — economy features disabled.");
+                    "[Economy] No economy plugin found - economy features disabled.");
         }
 
         loadShapePrices(knownShapeNames);
@@ -204,8 +204,10 @@ public class EconomyManager {
             return chargeViaVaultApi(player, shapeName, price);
         }
 
-        if (chargeViaPluginApi(player, shapeName, price)) {
-            return true;
+        if (detectedPlugin != null && !detectedPlugin.equalsIgnoreCase("Vault")) {
+            if (chargeViaPluginApi(player, shapeName, price)) {
+                return true;
+            }
         }
 
         return chargeViaCommand(player, shapeName, price);
@@ -218,42 +220,257 @@ public class EconomyManager {
 
         String pluginName = detectedPlugin.toLowerCase();
         if (pluginName.contains("essentials")) {
-            return chargeViaEssentialsApi(player, shapeName, price);
+            return chargeViaEconomyPluginApi(player, shapeName, price);
+        }
+
+        Plugin plugin = Bukkit.getPluginManager().getPlugin(detectedPlugin);
+        return chargeViaGenericEconomyApi(player, shapeName, price, plugin);
+    }
+
+    private static boolean chargeViaGenericEconomyApi(Player player, String shapeName, double price, Plugin plugin) {
+        if (plugin == null || !plugin.isEnabled()) {
+            return false;
+        }
+
+        Object user = getEconomyUser(plugin, player);
+        if (user != null && chargeViaEconomyUser(player, shapeName, price, user, plugin.getName())) {
+            return true;
+        }
+
+        if (chargeViaEconomyObject(player, shapeName, price, plugin, plugin.getName())) {
+            return true;
         }
 
         return false;
     }
 
-    private static boolean chargeViaEssentialsApi(Player player, String shapeName, double price) {
-        Plugin essentialsPlugin = Bukkit.getPluginManager().getPlugin("Essentials");
-        if (essentialsPlugin == null || !essentialsPlugin.isEnabled()) {
+    private static Object getEconomyUser(Plugin plugin, Player player) {
+        String[] userMethods = new String[]{"getUser", "getAccount", "getIConomyAccount", "getPlayer", "getPlayerAccount"};
+        for (String methodName : userMethods) {
+            try {
+                Method method = plugin.getClass().getMethod(methodName, String.class);
+                Object user = method.invoke(plugin, player.getName());
+                if (user != null) {
+                    return user;
+                }
+            } catch (NoSuchMethodException ignored) {
+            } catch (Exception ignored) {
+            }
+            try {
+                Method method = plugin.getClass().getMethod(methodName, Player.class);
+                Object user = method.invoke(plugin, player);
+                if (user != null) {
+                    return user;
+                }
+            } catch (NoSuchMethodException ignored) {
+            } catch (Exception ignored) {
+            }
+        }
+        return null;
+    }
+
+    private static boolean chargeViaEconomyUser(Player player, String shapeName, double price, Object user, String source) {
+        Boolean enough = invokeEconomyCheck(user, player.getName(), price);
+        if (enough == null) {
+            return false;
+        }
+        if (!enough) {
+            player.sendMessage(
+                    "§3:: §5error §3:: §7You do not have enough money to build this stargate. "
+                    + "Cost: " + price);
+            WXTLogger.prettyLog(Level.INFO, false,
+                    "[Economy] " + player.getName() + " cannot afford " + price
+                    + " for '" + shapeName + "'.");
+            return false;
+        }
+
+        Boolean paid = invokeEconomyWithdraw(user, player.getName(), price);
+        if (paid == null || !paid) {
+            return false;
+        }
+
+        player.sendMessage(
+                "§3:: §7" + price + " has been deducted from your balance "
+                + "for building a " + shapeName + " stargate.");
+        WXTLogger.prettyLog(Level.INFO, false,
+                "[Economy] " + source + ": charged " + player.getName() + " "
+                + price + " for '" + shapeName + "'.");
+        return true;
+    }
+
+    private static boolean chargeViaEconomyObject(Player player, String shapeName, double price, Object target, String source) {
+        Boolean enough = invokeEconomyCheck(target, player.getName(), price);
+        if (enough == null) {
+            return false;
+        }
+        if (!enough) {
+            player.sendMessage(
+                    "§3:: §5error §3:: §7You do not have enough money to build this stargate. "
+                    + "Cost: " + price);
+            WXTLogger.prettyLog(Level.INFO, false,
+                    "[Economy] " + player.getName() + " cannot afford " + price
+                    + " for '" + shapeName + "'.");
+            return false;
+        }
+
+        Boolean paid = invokeEconomyWithdraw(target, player.getName(), price);
+        if (paid == null || !paid) {
+            return false;
+        }
+
+        player.sendMessage(
+                "§3:: §7" + price + " has been deducted from your balance "
+                + "for building a " + shapeName + " stargate.");
+        WXTLogger.prettyLog(Level.INFO, false,
+                "[Economy] " + source + ": charged " + player.getName() + " "
+                + price + " for '" + shapeName + "'.");
+        return true;
+    }
+
+    private static Boolean invokeEconomyCheck(Object target, String playerName, double price) {
+        String[] checkMethods = new String[]{"has", "hasEnough", "canAfford", "canPay", "hasMoney", "hasFunds"};
+        for (String methodName : checkMethods) {
+            Method method = findFirstMethod(target.getClass(), new String[]{methodName}, double.class);
+            if (method != null) {
+                try {
+                    return (Boolean) method.invoke(target, price);
+                } catch (Exception ignored) {
+                }
+            }
+            method = findFirstMethod(target.getClass(), new String[]{methodName}, String.class, double.class);
+            if (method != null) {
+                try {
+                    return (Boolean) method.invoke(target, playerName, price);
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        return null;
+    }
+
+    private static Boolean invokeEconomyWithdraw(Object target, String playerName, double price) {
+        String[] withdrawMethods = new String[]{"withdraw", "subtract", "take", "remove", "pay", "charge", "debit"};
+        for (String methodName : withdrawMethods) {
+            Method method = findFirstMethod(target.getClass(), new String[]{methodName}, double.class);
+            if (method != null) {
+                try {
+                    Object result = method.invoke(target, price);
+                    return result == null || !(result instanceof Boolean) || (Boolean) result;
+                } catch (Exception ignored) {
+                }
+            }
+            method = findFirstMethod(target.getClass(), new String[]{methodName}, String.class, double.class);
+            if (method != null) {
+                try {
+                    Object result = method.invoke(target, playerName, price);
+                    return result == null || !(result instanceof Boolean) || (Boolean) result;
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        return null;
+    }
+
+    private static boolean chargeViaEconomyPluginApi(Player player, String shapeName, double price) {
+        Plugin economyPlugin = Bukkit.getPluginManager().getPlugin(detectedPlugin);
+        if (economyPlugin == null || !economyPlugin.isEnabled()) {
             return false;
         }
 
         try {
-            Object economy = null;
-            for (String methodName : new String[]{"getEconomy", "getEconomyHandler", "getMoneyEconomy"}) {
-                try {
-                    Method method = essentialsPlugin.getClass().getMethod(methodName);
-                    economy = method.invoke(essentialsPlugin);
-                    if (economy != null) {
-                        break;
-                    }
-                } catch (NoSuchMethodException ignored) {
+            if (chargeViaEconomyStaticApi(player, shapeName, price)) {
+                return true;
+            }
+
+            Object economy = getEconomyPluginObject(economyPlugin);
+            if (economy != null && chargeViaEconomyObject(player, shapeName, price, economy)) {
+                return true;
+            }
+
+            Object user = getEconomyPluginUser(economyPlugin, player);
+            if (user != null && chargeViaEconomyUser(player, shapeName, price, user)) {
+                return true;
+            }
+        } catch (Exception e) {
+            WXTLogger.prettyLog(Level.WARNING, false,
+                    "[Economy] Economy plugin API error for " + player.getName() + ": " + e.getMessage());
+        }
+        return false;
+    }
+
+    private static boolean chargeViaEconomyStaticApi(Player player, String shapeName, double price) {
+        try {
+            Class<?> economyApiClass = Class.forName("com.earth2me.essentials.api.Economy");
+            Method hasMethod = findMethod(economyApiClass, "has", String.class, double.class);
+            if (hasMethod == null) {
+                hasMethod = findMethod(economyApiClass, "hasEnough", String.class, double.class);
+            }
+            Method withdrawMethod = findMethod(economyApiClass, "withdraw", String.class, double.class);
+            if (withdrawMethod == null) {
+                withdrawMethod = findMethod(economyApiClass, "subtract", String.class, double.class);
+            }
+            if (hasMethod == null || withdrawMethod == null) {
+                return false;
+            }
+
+            boolean enough = (boolean) hasMethod.invoke(null, player.getName(), price);
+            if (!enough) {
+                player.sendMessage(
+                        "§3:: §5error §3:: §7You do not have enough money to build this stargate. "
+                        + "Cost: " + price);
+                WXTLogger.prettyLog(Level.INFO, false,
+                        "[Economy] " + player.getName() + " cannot afford " + price
+                        + " for '" + shapeName + "'.");
+                return true;
+            }
+
+            Object result = withdrawMethod.invoke(null, player.getName(), price);
+            if (result instanceof Boolean && !((Boolean) result)) {
+                return false;
+            }
+            player.sendMessage(
+                    "§3:: §7" + price + " has been deducted from your balance "
+                    + "for building a " + shapeName + " stargate.");
+            WXTLogger.prettyLog(Level.INFO, false,
+                    "[Economy] Economy static API: charged " + player.getName() + " "
+                    + price + " for '" + shapeName + "'.");
+            return true;
+        } catch (ClassNotFoundException ignored) {
+            return false;
+        } catch (Exception e) {
+            WXTLogger.prettyLog(Level.WARNING, false,
+                    "[Economy] Economy static API error for " + player.getName() + ": " + e.getMessage());
+            return false;
+        }
+    }
+
+    private static Object getEconomyPluginObject(Plugin economyPlugin) {
+        for (String methodName : new String[]{"getEconomy", "getEconomyHandler", "getMoneyEconomy"}) {
+            try {
+                Method method = economyPlugin.getClass().getMethod(methodName);
+                Object economy = method.invoke(economyPlugin);
+                if (economy != null) {
+                    return economy;
                 }
+            } catch (NoSuchMethodException ignored) {
+            } catch (Exception ignored) {
             }
+        }
+        return null;
+    }
 
-            if (economy == null) {
-                return false;
-            }
+    private static boolean chargeViaEconomyPluginObject(Player player, String shapeName, double price, Object economy) {
+        Method hasMethod = findMethod(economy.getClass(), "has", String.class, double.class);
+        if (hasMethod == null) {
+            hasMethod = findMethod(economy.getClass(), "hasEnough", String.class, double.class);
+        }
+        Method withdrawMethod = findFirstMethod(economy.getClass(), new String[]{"withdraw", "subtract", "take"}, String.class, double.class);
+        if (hasMethod == null || withdrawMethod == null) {
+            return false;
+        }
 
-            Method hasEnough = findMethod(economy.getClass(), "hasEnough", String.class, double.class);
-            Method subtract = findMethod(economy.getClass(), "subtract", String.class, double.class);
-            if (hasEnough == null || subtract == null) {
-                return false;
-            }
-
-            boolean enough = (boolean) hasEnough.invoke(economy, player.getName(), price);
+        try {
+            boolean enough = (boolean) hasMethod.invoke(economy, player.getName(), price);
             if (!enough) {
                 player.sendMessage(
                         "§3:: §5error §3:: §7You do not have enough money to build this stargate. "
@@ -263,20 +480,86 @@ public class EconomyManager {
                         + " for '" + shapeName + "'.");
                 return false;
             }
-
-            subtract.invoke(economy, player.getName(), price);
+            Object result = withdrawMethod.invoke(economy, player.getName(), price);
+            if (result instanceof Boolean && !((Boolean) result)) {
+                return false;
+            }
             player.sendMessage(
                     "§3:: §7" + price + " has been deducted from your balance "
                     + "for building a " + shapeName + " stargate.");
             WXTLogger.prettyLog(Level.INFO, false,
-                    "[Economy] Essentials: charged " + player.getName() + " "
+                    "[Economy] Economy plugin object: charged " + player.getName() + " "
                     + price + " for '" + shapeName + "'.");
             return true;
         } catch (Exception e) {
             WXTLogger.prettyLog(Level.WARNING, false,
-                    "[Economy] Essentials API error for " + player.getName() + ": " + e.getMessage());
+                    "[Economy] Economy plugin object error for " + player.getName() + ": " + e.getMessage());
             return false;
         }
+    }
+
+    private static Object getEconomyPluginUser(Plugin economyPlugin, Player player) {
+        try {
+            Method getUserByName = findMethod(economyPlugin.getClass(), "getUser", String.class);
+            if (getUserByName != null) {
+                return getUserByName.invoke(economyPlugin, player.getName());
+            }
+        } catch (Exception ignored) {
+        }
+        try {
+            Method getUserByPlayer = findMethod(economyPlugin.getClass(), "getUser", Player.class);
+            if (getUserByPlayer != null) {
+                return getUserByPlayer.invoke(economyPlugin, player);
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    private static boolean chargeViaEconomyPluginUser(Player player, String shapeName, double price, Object user) {
+        Method hasMethod = findFirstMethod(user.getClass(), new String[]{"has", "hasEnough", "canAfford"}, double.class);
+        Method withdrawMethod = findFirstMethod(user.getClass(), new String[]{"withdraw", "subtract", "take", "remove", "pay"}, double.class);
+        if (hasMethod == null || withdrawMethod == null) {
+            return false;
+        }
+
+        try {
+            boolean enough = (boolean) hasMethod.invoke(user, price);
+            if (!enough) {
+                player.sendMessage(
+                        "§3:: §5error §3:: §7You do not have enough money to build this stargate. "
+                        + "Cost: " + price);
+                WXTLogger.prettyLog(Level.INFO, false,
+                        "[Economy] " + player.getName() + " cannot afford " + price
+                        + " for '" + shapeName + "'.");
+                return false;
+            }
+            Object result = withdrawMethod.invoke(user, price);
+            if (result instanceof Boolean && !((Boolean) result)) {
+                return false;
+            }
+            player.sendMessage(
+                    "§3:: §7" + price + " has been deducted from your balance "
+                    + "for building a " + shapeName + " stargate.");
+            WXTLogger.prettyLog(Level.INFO, false,
+                    "[Economy] Economy plugin user object: charged " + player.getName() + " "
+                    + price + " for '" + shapeName + "'.");
+            return true;
+        } catch (Exception e) {
+            WXTLogger.prettyLog(Level.WARNING, false,
+                    "[Economy] Economy plugin user error for " + player.getName() + ": " + e.getMessage());
+            return false;
+        }
+    }
+
+    private static Method findFirstMethod(Class<?> type, String[] methodNames, Class<?>... parameterTypes) {
+        for (String methodName : methodNames) {
+            Method method = findMethod(type, methodName, parameterTypes);
+            if (method != null) {
+                return method;
+            }
+        }
+        return null;
     }
 
     private static Method findMethod(Class<?> type, String methodName, Class<?>... parameterTypes) {
