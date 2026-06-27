@@ -1291,7 +1291,7 @@ public class StargateHelper {
             byte[] irisMatBytes   = materialNameBytes(s.getGateCustomIrisMaterial());
             int size = 206 + 16 + structMatBytes.length + portalMatBytes.length + lightMatBytes.length + irisMatBytes.length
                      + (s.getGateStructureBlocks().size() * 12) + (s.getGatePortalBlocks().size() * 12);
-            int numIntsOther = 11;
+            int numIntsOther = 0;
             for (int i = 0; i < s.getGateLightBlocks().size(); i++) {
                 if (s.getGateLightBlocks().get(i) != null) {
                     size += s.getGateLightBlocks().get(i).size() * 12;
