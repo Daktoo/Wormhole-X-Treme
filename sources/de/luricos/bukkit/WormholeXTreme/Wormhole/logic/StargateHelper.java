@@ -1010,28 +1010,17 @@ public class StargateHelper {
             s.setGateRedstoneGateActivatedBlock(DataUtils.blockFromBytes(blocArray, w));
         }
         s.setGateRedstonePowered(DataUtils.byteToBoolean(byteBuff.get()));
+
+        if (byteBuff.remaining() < 1) {
+            return s;
+        }
         s.setGateCustom(DataUtils.byteToBoolean(byteBuff.get()));
-        
-        int structMatLen = byteBuff.getInt();
-        byte[] structMatBytes = new byte[structMatLen];
-        byteBuff.get(structMatBytes);
-        s.setGateCustomStructureMaterial(parseMaterialName(new String(structMatBytes)));
-        
-        int portalMatLen = byteBuff.getInt();
-        byte[] portalMatBytes = new byte[portalMatLen];
-        byteBuff.get(portalMatBytes);
-        s.setGateCustomPortalMaterial(parseMaterialName(new String(portalMatBytes)));
-        
-        int lightMatLen = byteBuff.getInt();
-        byte[] lightMatBytes = new byte[lightMatLen];
-        byteBuff.get(lightMatBytes);
-        s.setGateCustomLightMaterial(parseMaterialName(new String(lightMatBytes)));
-        
-        int irisMatLen = byteBuff.getInt();
-        byte[] irisMatBytes = new byte[irisMatLen];
-        byteBuff.get(irisMatBytes);
-        s.setGateCustomIrisMaterial(parseMaterialName(new String(irisMatBytes)));
-        
+
+        s.setGateCustomStructureMaterial(readMaterialField(byteBuff, s.getGateName(), "structure"));
+        s.setGateCustomPortalMaterial(readMaterialField(byteBuff, s.getGateName(), "portal"));
+        s.setGateCustomLightMaterial(readMaterialField(byteBuff, s.getGateName(), "light"));
+        s.setGateCustomIrisMaterial(readMaterialField(byteBuff, s.getGateName(), "iris"));
+
         s.setGateCustomWooshTicks(byteBuff.getInt());
         s.setGateCustomLightTicks(byteBuff.getInt());
         s.setGateCustomWooshDepth(byteBuff.getInt());
@@ -1141,6 +1130,36 @@ public class StargateHelper {
             stargate.setGateNetwork(net);
             stargate.setGateDialSignIndex(-1);
             WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(stargate, StargateUpdateRunnable.ActionToTake.DIAL_SIGN_CLICK));
+        }
+    }
+
+    private static Material readMaterialField(ByteBuffer buf, String gateName, String fieldName) {
+        if (buf.remaining() < 4) {
+            WXTLogger.prettyLog(Level.WARNING, false,
+                    "[V8] Buffer underflow reading " + fieldName + " material for: " + gateName);
+            return null;
+        }
+        int value = buf.getInt();
+        if (value < 0) {
+            return null;
+        }
+        if (value > buf.remaining()) {
+            return getMaterialById(value);
+        }
+        byte[] nameBytes = new byte[value];
+        buf.get(nameBytes);
+        String name = new String(nameBytes);
+        if (name.isEmpty() || name.equals("null")) {
+            return null;
+        }
+        Material m = parseMaterialName(name);
+        if (m != null) {
+            return m;
+        }
+        try {
+            return getMaterialById(Integer.parseInt(name));
+        } catch (NumberFormatException ignored) {
+            return null;
         }
     }
 
