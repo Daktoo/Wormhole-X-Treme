@@ -126,8 +126,6 @@ public class StargateDBManager {
                 WXTLogger.prettyLog(Level.INFO, false,
                         "VisitCount column added and all existing records set to 0.");
 
-                // Invalidate all cached prepared statements so they are
-                // rebuilt against the updated schema on next use.
                 wormholeSQLConnection.close();
                 storeStatement = null;
                 updateGateStatement = null;
@@ -139,7 +137,6 @@ public class StargateDBManager {
                 storeIndvPermStatement = null;
                 getIndvPermStatement = null;
 
-                // Reconnect with a fresh connection so SELECT * sees the new column.
                 connectDB();
                 WXTLogger.prettyLog(Level.INFO, false,
                         "Reconnected to DB after VisitCount migration.");

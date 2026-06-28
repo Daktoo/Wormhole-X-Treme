@@ -1,6 +1,7 @@
 package de.luricos.bukkit.WormholeXTreme.Wormhole.utils;
 
 import de.luricos.bukkit.WormholeXTreme.Wormhole.WormholeXTreme;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.utils.WXTLogger;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -64,24 +65,46 @@ public class DBUpdateUtil {
         return count;
     }
 
-            private static int getCurrentVersion() {
+    private static int getCurrentVersion() {
         try {
-            // Try VersionInfo table first
             java.sql.ResultSet rs = sql_con.prepareStatement(
                 "SELECT MAX(Version) FROM VersionInfo;").executeQuery();
             if (rs.next()) {
                 int ver = rs.getInt(1);
                 rs.close();
-                if (ver > 0) return ver;
+                if (ver > 0) {
+                    if (ver >= 7 && !columnExists("Stargates", "VisitCount")) {
+                        WXTLogger.prettyLog(Level.WARNING, false,
+                                "VersionInfo says " + ver
+                                + " but VisitCount column is missing — forcing migration from 6.");
+                        return 6;
+                    }
+                    return ver;
+                }
             }
             rs.close();
         } catch (Exception ignored) {}
         try {
-            // If Stargates table exists, DB is fully initialised - return max version
             sql_con.prepareStatement("SELECT 1 FROM Stargates LIMIT 1;").executeQuery().close();
+            if (!columnExists("Stargates", "VisitCount")) {
+                WXTLogger.prettyLog(Level.WARNING, false,
+                        "Stargates table found but VisitCount column missing — returning version 6.");
+                return 6;
+            }
             return getCountDBFiles();
         } catch (Exception ignored) {}
         return 0;
+    }
+
+    private static boolean columnExists(String table, String column) {
+        try {
+            java.sql.ResultSet rs = sql_con.prepareStatement(
+                    "SELECT " + column + " FROM " + table + " LIMIT 1;").executeQuery();
+            rs.close();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private static ArrayList<String> readTextFromJar(String s) {
