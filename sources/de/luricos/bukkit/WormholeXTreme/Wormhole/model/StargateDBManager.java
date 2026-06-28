@@ -108,10 +108,34 @@ public class StargateDBManager {
         return perms;
     }
 
+    private static void ensureVisitCountColumn() {
+        try {
+            PreparedStatement check = wormholeSQLConnection.prepareStatement(
+                    "SELECT VisitCount FROM Stargates LIMIT 1;");
+            check.executeQuery().close();
+            check.close();
+        } catch (SQLException e) {
+            WXTLogger.prettyLog(Level.WARNING, false,
+                    "VisitCount column not found — running migration now.");
+            try {
+                Statement stmt = wormholeSQLConnection.createStatement();
+                stmt.executeUpdate("ALTER TABLE Stargates ADD COLUMN VisitCount INTEGER DEFAULT 0;");
+                stmt.executeUpdate("UPDATE Stargates SET VisitCount = 0 WHERE VisitCount IS NULL;");
+                stmt.close();
+                WXTLogger.prettyLog(Level.INFO, false,
+                        "VisitCount column added and all existing records set to 0.");
+            } catch (SQLException e2) {
+                WXTLogger.prettyLog(Level.SEVERE, false,
+                        "Failed to add VisitCount column: " + e2.getMessage());
+            }
+        }
+    }
+
     public static void loadStargates(Server server) {
         if (!isConnected()) {
             connectDB();
         }
+        ensureVisitCountColumn();
         PreparedStatement stmt = null;
         ResultSet gatesData = null;
         try {
@@ -138,7 +162,22 @@ public class StargateDBManager {
                         WXTLogger.prettyLog(Level.WARNING, true, "World: " + worldName + " is not a Wormhole World, the suggested action is to add it as one. Otherwise disregard this warning.");
                     }
                     World w = server.getWorld(worldName);
-                    Stargate s = StargateHelper.parseVersionedData(gatesData.getBytes("GateData"), w, gatesData.getString("Name"), sn);
+                    byte[] gateData = gatesData.getBytes("GateData");
+                    if (gateData == null) {
+                        WXTLogger.prettyLog(Level.WARNING, false,
+                                "Skipping gate '" + gatesData.getString("Name")
+                                + "' — GateData is null in DB.");
+                        continue;
+                    }
+                    Stargate s;
+                    try {
+                        s = StargateHelper.parseVersionedData(gateData, w, gatesData.getString("Name"), sn);
+                    } catch (NegativeArraySizeException e) {
+                        WXTLogger.prettyLog(Level.WARNING, false,
+                                "Skipping gate '" + gatesData.getString("Name")
+                                + "' — corrupt GateData (NegativeArraySizeException: " + e.getMessage() + ").");
+                        continue;
+                    }
                     if (s != null) {
                         s.setGateId(gatesData.getInt("Id"));
                         s.setGateOwner(gatesData.getString("Owner"));
