@@ -14,8 +14,11 @@ commands:
     aliases: [wxt]
     usage: /<command> <subcommand>
   wxlist:
-    description: List all Stargates.
-    usage: /<command>
+    description: List stargates.
+    usage: /<command> [all|self]
+  wxtop:
+    description: Show most visited stargates leaderboard.
+    usage: /<command> [count]
   wxbuild:
     description: Automatically Build Stargate.
     usage: /<command> <GateShape>

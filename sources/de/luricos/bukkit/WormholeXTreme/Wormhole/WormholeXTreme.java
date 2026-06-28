@@ -13,6 +13,7 @@ import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.WXIDC;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.WXList;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.WXReload;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.WXRemove;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.WXTop;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.WXStatus;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.Wormhole;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.config.ConfigManager;
@@ -240,7 +241,11 @@ public class WormholeXTreme extends JavaPlugin {
         tp.getCommand("wxremove").setExecutor(wxremove);
         tp.getCommand("wxremove").setTabCompleter(wxremove);
 
-        tp.getCommand("wxlist").setExecutor(new WXList());
+        WXList wxlist = new WXList();
+        tp.getCommand("wxlist").setExecutor(wxlist);
+        tp.getCommand("wxlist").setTabCompleter(wxlist);
+
+        tp.getCommand("wxtop").setExecutor(new WXTop());
 
         Go go = new Go();
         tp.getCommand("wxgo").setExecutor(go);

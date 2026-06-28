@@ -3,6 +3,7 @@ package de.luricos.bukkit.WormholeXTreme.Wormhole.listeners;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.config.ConfigManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.StargateHelper;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.Stargate;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateDBManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateShape;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.permissions.StargateRestrictions;
@@ -327,6 +328,7 @@ public class WormholeXTremePlayerListener implements Listener {
                         player.teleport(target);
                         WXTLogger.prettyLog(Level.FINE, false, "Player was transported via teleport");
                     }
+                    StargateDBManager.incrementVisitCount(stargate.getGateTarget());
                     if (target != stargate.getGatePlayerTeleportLocation() && !wormholePlayer.getProperties().hasUsedStargate()) {
                         WXTLogger.prettyLog(Level.INFO, false, player.getName() + " used wormhole: " + stargate.getGateName() + " to go to: " + stargate.getGateTarget().getGateName());
                         wormholePlayer.getProperties().setHasUsedStargate(true);
@@ -349,16 +351,9 @@ public class WormholeXTremePlayerListener implements Listener {
         return null;
     }
 
-    /**
-     * Cancels vanilla nether-portal teleportation when the portal block the
-     * player is touching belongs to a WormholeXTreme stargate. This prevents
-     * NETHER_PORTAL-material stargates from also acting as vanilla portals.
-     */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlayerPortal(PlayerPortalEvent event) {
         Block from = event.getFrom().getBlock();
-        // Check the block the player is standing in and immediate neighbours
-        // (vanilla portal teleport fires from the player's feet block)
         if (isNetherPortalInStargate(from)) {
             event.setCancelled(true);
             WXTLogger.prettyLog(Level.FINE, false,
@@ -367,10 +362,6 @@ public class WormholeXTremePlayerListener implements Listener {
         }
     }
 
-    /**
-     * Cancels vanilla nether-portal teleportation for non-player entities
-     * (mobs, minecarts, etc.) when the portal block belongs to a stargate.
-     */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onEntityPortal(EntityPortalEvent event) {
         Block from = event.getFrom().getBlock();
@@ -382,12 +373,6 @@ public class WormholeXTremePlayerListener implements Listener {
         }
     }
 
-    /**
-     * Returns true if the given block, or any adjacent block, is a
-     * NETHER_PORTAL that is registered as part of a stargate. Checks
-     * neighbours because the player's feet may be one block off from the
-     * actual portal column.
-     */
     private static boolean isNetherPortalInStargate(Block block) {
         if (block == null) return false;
         BlockFace[] faces = { BlockFace.SELF, BlockFace.NORTH, BlockFace.SOUTH,

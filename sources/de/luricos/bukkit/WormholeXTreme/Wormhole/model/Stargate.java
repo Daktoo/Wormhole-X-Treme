@@ -50,6 +50,7 @@ public class Stargate {
     private String gateSourceName = null;
     private String gateOwner = null;
     private String lastUsedBy = null;
+    private int visitCount = 0;
     private boolean gateActive = false;
     private boolean gateRecentlyActive = false;
     private boolean gateLightsActive = false;
@@ -883,6 +884,18 @@ public class Stargate {
 
     public void setLastUsedBy(String playerName) {
         this.lastUsedBy = playerName;
+    }
+
+    public int getVisitCount() {
+        return this.visitCount;
+    }
+
+    public void setVisitCount(int visitCount) {
+        this.visitCount = visitCount;
+    }
+
+    public void incrementVisitCount() {
+        this.visitCount++;
     }
 
     public String getSourceGateName() {

@@ -26,6 +26,9 @@ enum ComplexPermissionType {
     BUILD_RESTRICTION_GROUP_THREE("wormhole.build.groupthree"),
     CONFIG("wormhole.config"),
     LIST("wormhole.list"),
+    LIST_ALL("wormhole.list.all"),
+    LIST_SELF("wormhole.list.self"),
+    TOP("wormhole.top"),
     NETWORK_USE("wormhole.network.use."),
     NETWORK_BUILD("wormhole.network.build."),
     GO("wormhole.go");

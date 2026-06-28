@@ -19,7 +19,7 @@ public class WXStatus implements CommandExecutor, TabCompleter {
     private static final String[] PLUGIN_COMMANDS = {
         "dial", "wormhole", "wxlist", "wxbuild", "wxbuildlist",
         "wxremove", "wxcompass", "wxcomplete", "wxidc", "wxforce",
-        "wxgo", "wxreload", "wxstatus"
+        "wxgo", "wxreload", "wxstatus", "wxtop"
     };
 
     @Override
@@ -35,12 +35,10 @@ public class WXStatus implements CommandExecutor, TabCompleter {
 
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!CommandUtilities.playerCheck(sender) || WXPermissions.checkPermission((Player) sender, WXPermissions.PermissionType.CONFIG)) {
-            // Allow both "/wxstatus" (no args) and "/wxstatus a" / "/wxstatus all"
             if (args.length == 0 || args[0].equalsIgnoreCase("a") || args[0].equalsIgnoreCase("all")) {
                 printStatus(sender);
                 return true;
             }
-            // Unknown subcommand — show usage
             return false;
         }
         sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());

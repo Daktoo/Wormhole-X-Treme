@@ -24,6 +24,7 @@ public class StargateDBManager {
     private static volatile PreparedStatement updateGateStatement;
     private static volatile PreparedStatement getGateStatement;
     private static volatile PreparedStatement removeStatement;
+    private static volatile PreparedStatement incrementVisitStatement = null;
     private static Connection wormholeSQLConnection = null;
     private static volatile PreparedStatement updateIndvPermStatement = null;
     private static volatile PreparedStatement storeIndvPermStatement = null;
@@ -146,6 +147,11 @@ public class StargateDBManager {
                             gateShapeName = "Standard";
                         }
                         s.setGateShape(StargateHelper.getStargateShape(gateShapeName));
+                        try {
+                            s.setVisitCount(gatesData.getInt("VisitCount"));
+                        } catch (SQLException e) {
+                            s.setVisitCount(0);
+                        }
                         if (sn != null) {
                             sn.getNetworkGateList().add(s);
                             if (s.isGateSignPowered()) {
@@ -323,7 +329,7 @@ public class StargateDBManager {
                 if (gatesData2.next()) {
                     gatesData2.close();
                     if (updateGateStatement == null) {
-                        updateGateStatement = wormholeSQLConnection.prepareStatement("UPDATE Stargates SET GateData = ?, Network = ?, World = ?, WorldName = ?, WorldEnvironment = ?, Owner = ?, GateShape = ? WHERE Name = ?");
+                        updateGateStatement = wormholeSQLConnection.prepareStatement("UPDATE Stargates SET GateData = ?, Network = ?, World = ?, WorldName = ?, WorldEnvironment = ?, Owner = ?, GateShape = ?, VisitCount = ? WHERE Name = ?");
                     }
                     byte[] data = StargateHelper.stargatetoBinary(s);
                     updateGateStatement.setBytes(1, data);
@@ -341,13 +347,14 @@ public class StargateDBManager {
                     } else {
                         updateGateStatement.setString(7, s.getGateShape().getShapeName());
                     }
-                    updateGateStatement.setString(8, s.getGateName());
+                    updateGateStatement.setInt(8, s.getVisitCount());
+                    updateGateStatement.setString(9, s.getGateName());
                     updateGateStatement.executeUpdate();
                     WXTLogger.prettyLog(Level.FINE, false, "Saved gate '" + s.getGateName() + "', GateFace: '" + s.getGateFacing().name() + "' to DB");
                 } else {
                     gatesData2.close();
                     if (storeStatement == null) {
-                        storeStatement = wormholeSQLConnection.prepareStatement("INSERT INTO Stargates(Name, GateData, Network, World, WorldName, WorldEnvironment, Owner, GateShape) VALUES ( ? , ? , ? , ? , ? , ?, ?, ? );");
+                        storeStatement = wormholeSQLConnection.prepareStatement("INSERT INTO Stargates(Name, GateData, Network, World, WorldName, WorldEnvironment, Owner, GateShape, VisitCount) VALUES ( ? , ? , ? , ? , ? , ?, ?, ?, ? );");
                     }
                     storeStatement.setString(1, s.getGateName());
                     byte[] data2 = StargateHelper.stargatetoBinary(s);
@@ -362,6 +369,7 @@ public class StargateDBManager {
                     storeStatement.setString(6, s.getGateWorld().getEnvironment().toString());
                     storeStatement.setString(7, s.getGateOwner());
                     storeStatement.setString(8, s.getGateShape().getShapeName());
+                    storeStatement.setInt(9, s.getVisitCount());
                     storeStatement.executeUpdate();
                     getGateStatement.setString(1, s.getGateName());
                     gatesData2 = getGateStatement.executeQuery();
@@ -390,6 +398,32 @@ public class StargateDBManager {
             } catch (SQLException e4) {
                 WXTLogger.prettyLog(Level.FINE, false, e4.getMessage());
             }
+        }
+    }
+
+    public static void incrementVisitCount(Stargate s) {
+        if (s == null) return;
+        s.incrementVisitCount();
+        if (!isConnected()) {
+            connectDB();
+        }
+        try {
+            if (wormholeSQLConnection.isClosed()) {
+                connectDB();
+            }
+            if (incrementVisitStatement == null) {
+                incrementVisitStatement = wormholeSQLConnection.prepareStatement(
+                        "UPDATE Stargates SET VisitCount = VisitCount + 1 WHERE Name = ?");
+            }
+            incrementVisitStatement.setString(1, s.getGateName());
+            incrementVisitStatement.executeUpdate();
+            WXTLogger.prettyLog(Level.FINE, false,
+                    "Incremented visit count for gate '" + s.getGateName()
+                    + "' to " + s.getVisitCount());
+        } catch (SQLException e) {
+            WXTLogger.prettyLog(Level.WARNING, false,
+                    "Failed to increment visit count for gate '" + s.getGateName()
+                    + "': " + e.getMessage());
         }
     }
 

@@ -18,6 +18,9 @@ public class WXPermissions {
         REMOVE,
         USE,
         LIST,
+        LIST_ALL,
+        LIST_SELF,
+        TOP,
         CONFIG,
         GO,
         COMPASS,
@@ -51,6 +54,9 @@ public class WXPermissions {
                 case DIALER:
                 case USE:
                 case LIST:
+                case LIST_ALL:
+                case LIST_SELF:
+                case TOP:
                 case COMPASS:
                 case BUILD:
                     return true;
@@ -73,7 +79,11 @@ public class WXPermissions {
                     case COMPASS:
                         return SimplePermissionType.USE.checkPermission(player);
                     case LIST:
+                    case LIST_ALL:
+                    case TOP:
                         return SimplePermissionType.CONFIG.checkPermission(player) || SimplePermissionType.USE.checkPermission(player);
+                    case LIST_SELF:
+                        return SimplePermissionType.USE.checkPermission(player) || SimplePermissionType.BUILD.checkPermission(player) || SimplePermissionType.CONFIG.checkPermission(player);
                     case BUILD:
                         return SimplePermissionType.BUILD.checkPermission(player);
                     default:
@@ -105,7 +115,11 @@ public class WXPermissions {
                     }
                     return (ComplexPermissionType.USE_SIGN.checkPermission(player) && (networkName.equals("Public") || (!networkName.equals("Public") && ComplexPermissionType.NETWORK_USE.checkPermission(player, networkName)))) || (ComplexPermissionType.USE_DIALER.checkPermission(player) && (networkName.equals("Public") || (!networkName.equals("Public") && ComplexPermissionType.NETWORK_USE.checkPermission(player, networkName))));
                 case LIST:
-                    return ComplexPermissionType.LIST.checkPermission(player) || ComplexPermissionType.CONFIG.checkPermission(player);
+                case LIST_ALL:
+                case TOP:
+                    return ComplexPermissionType.LIST_ALL.checkPermission(player) || ComplexPermissionType.CONFIG.checkPermission(player);
+                case LIST_SELF:
+                    return ComplexPermissionType.LIST_SELF.checkPermission(player) || ComplexPermissionType.LIST_ALL.checkPermission(player) || ComplexPermissionType.CONFIG.checkPermission(player);
                 case COMPASS:
                     return ComplexPermissionType.USE_COMPASS.checkPermission(player);
                 case BUILD:
