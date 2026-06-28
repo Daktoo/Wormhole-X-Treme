@@ -315,7 +315,7 @@ public class StargateDBManager {
         if (!isConnected()) {
             connectDB();
         }
-        ResultSet gatesData = null;
+        ResultSet gatesData2 = null;
         try {
             try {
                 if (wormholeSQLConnection.isClosed()) {
@@ -325,7 +325,7 @@ public class StargateDBManager {
                     getGateStatement = wormholeSQLConnection.prepareStatement("SELECT * FROM Stargates WHERE Name = ?");
                 }
                 getGateStatement.setString(1, s.getGateName());
-                ResultSet gatesData2 = getGateStatement.executeQuery();
+                gatesData2 = getGateStatement.executeQuery();
                 if (gatesData2.next()) {
                     gatesData2.close();
                     if (updateGateStatement == null) {
@@ -383,20 +383,24 @@ public class StargateDBManager {
                     WXTLogger.prettyLog(Level.FINE, false, e.getMessage());
                 }
             } catch (Throwable th) {
-                try {
-                    gatesData.close();
-                } catch (SQLException e2) {
-                    WXTLogger.prettyLog(Level.FINE, false, e2.getMessage());
+                if (gatesData2 != null) {
+                    try {
+                        gatesData2.close();
+                    } catch (SQLException e2) {
+                        WXTLogger.prettyLog(Level.FINE, false, e2.getMessage());
+                    }
                 }
                 throw th;
             }
         } catch (SQLException e3) {
             WXTLogger.prettyLog(Level.SEVERE, false, "Error storing stargate to DB: " + e3.getMessage());
             e3.printStackTrace();
-            try {
-                gatesData.close();
-            } catch (SQLException e4) {
-                WXTLogger.prettyLog(Level.FINE, false, e4.getMessage());
+            if (gatesData2 != null) {
+                try {
+                    gatesData2.close();
+                } catch (SQLException e4) {
+                    WXTLogger.prettyLog(Level.FINE, false, e4.getMessage());
+                }
             }
         }
     }
