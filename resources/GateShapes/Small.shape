@@ -55,10 +55,28 @@ Layer#1=
 [I][I][I][I][I][I][I][I]
 [I][I][I][I][I][I][I][I]
 [I][I][I][I][I][I][I][I]
-[I][I][I][S][I][I][I][I]
+[I][I][I][S:L#5][I][I][I][I]
 [I][I][S][P][S][I][I][I]
-[I][I][S:N:L][P][S:A:L][I][I][I]
-[I][S:L][S][P:EP][S:IA][S:L][I]
+[I][I][S:N:L#3][P][S:A:L#4][I][I][I]
+[I][S:L#1][S][P:EP][S:IA][S:L#2][I]
+
+Layer#2=
+[I][I][I][I][I][I][I][I]
+[I][I][I][I][I][I][I][I]
+[I][I][I][I][I][I][I][I]
+[I][I][I][I][I][I][I][I]
+[I][I][I][I:W#1][I][I][I][I]
+[I][I][I][I:W#1][I][I][I][I]
+[I][I][I][I:W#1][I][I][I][I]
+
+Layer#3=
+[I][I][I][I][I][I][I][I]
+[I][I][I][I][I][I][I][I]
+[I][I][I][I][I][I][I][I]
+[I][I][I][I][I][I][I][I]
+[I][I][I][I][I][I][I][I]
+[I][I][I][I:W#2][I][I][I][I]
+[I][I][I][I][I][I][I][I]
 
 
 
