@@ -76,7 +76,8 @@ public class WormholeXTreme extends JavaPlugin {
     public boolean reloadPlugin() {
         WXTLogger.prettyLog(Level.INFO, true, "Reload in progress...");
         try {
-            Configuration.writeFile(getDescription());
+            // Reload configuration from Settings.txt so user edits are applied
+            ConfigManager.setupConfigs(getDescription());
             ArrayList<Stargate> gates = StargateManager.getAllGates();
             for (Stargate gate : gates) {
                 if (gate.isGateActive() || gate.isGateLightsActive()) {

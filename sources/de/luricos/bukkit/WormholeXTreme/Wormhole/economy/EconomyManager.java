@@ -275,7 +275,7 @@ public class EconomyManager {
     }
 
     private static boolean chargeViaEconomyUser(Player player, String shapeName, double price, Object user, String source) {
-        Boolean enough = invokeEconomyCheck(user, player.getName(), price);
+        Boolean enough = invokeEconomyCheck(user, player, price);
         if (enough == null) {
             return false;
         }
@@ -289,7 +289,7 @@ public class EconomyManager {
             return false;
         }
 
-        Boolean paid = invokeEconomyWithdraw(user, player.getName(), price);
+        Boolean paid = invokeEconomyWithdraw(user, player, price);
         if (paid == null || !paid) {
             return false;
         }
@@ -304,7 +304,7 @@ public class EconomyManager {
     }
 
     private static boolean chargeViaEconomyObject(Player player, String shapeName, double price, Object target, String source) {
-        Boolean enough = invokeEconomyCheck(target, player.getName(), price);
+        Boolean enough = invokeEconomyCheck(target, player, price);
         if (enough == null) {
             return false;
         }
@@ -318,7 +318,7 @@ public class EconomyManager {
             return false;
         }
 
-        Boolean paid = invokeEconomyWithdraw(target, player.getName(), price);
+        Boolean paid = invokeEconomyWithdraw(target, player, price);
         if (paid == null || !paid) {
             return false;
         }
@@ -332,8 +332,8 @@ public class EconomyManager {
         return true;
     }
 
-    private static Boolean invokeEconomyCheck(Object target, String playerName, double price) {
-        String[] checkMethods = new String[]{"has", "hasEnough", "canAfford", "canPay", "hasMoney", "hasFunds"};
+    private static Boolean invokeEconomyCheck(Object target, org.bukkit.entity.Player player, double price) {
+        String[] checkMethods = new String[]{"has", "hasEnough", "canAfford", "canPay", "hasMoney", "hasFunds", "canPay"};
         for (String methodName : checkMethods) {
             Method method = findFirstMethod(target.getClass(), new String[]{methodName}, double.class);
             if (method != null) {
@@ -342,10 +342,17 @@ public class EconomyManager {
                 } catch (Exception ignored) {
                 }
             }
+            method = findFirstMethod(target.getClass(), new String[]{methodName}, org.bukkit.entity.Player.class, double.class);
+            if (method != null) {
+                try {
+                    return (Boolean) method.invoke(target, player, price);
+                } catch (Exception ignored) {
+                }
+            }
             method = findFirstMethod(target.getClass(), new String[]{methodName}, String.class, double.class);
             if (method != null) {
                 try {
-                    return (Boolean) method.invoke(target, playerName, price);
+                    return (Boolean) method.invoke(target, player.getName(), price);
                 } catch (Exception ignored) {
                 }
             }
@@ -353,7 +360,7 @@ public class EconomyManager {
         return null;
     }
 
-    private static Boolean invokeEconomyWithdraw(Object target, String playerName, double price) {
+    private static Boolean invokeEconomyWithdraw(Object target, org.bukkit.entity.Player player, double price) {
         String[] withdrawMethods = new String[]{"withdraw", "subtract", "take", "remove", "pay", "charge", "debit"};
         for (String methodName : withdrawMethods) {
             Method method = findFirstMethod(target.getClass(), new String[]{methodName}, double.class);
@@ -364,10 +371,18 @@ public class EconomyManager {
                 } catch (Exception ignored) {
                 }
             }
+            method = findFirstMethod(target.getClass(), new String[]{methodName}, org.bukkit.entity.Player.class, double.class);
+            if (method != null) {
+                try {
+                    Object result = method.invoke(target, player, price);
+                    return result == null || !(result instanceof Boolean) || (Boolean) result;
+                } catch (Exception ignored) {
+                }
+            }
             method = findFirstMethod(target.getClass(), new String[]{methodName}, String.class, double.class);
             if (method != null) {
                 try {
-                    Object result = method.invoke(target, playerName, price);
+                    Object result = method.invoke(target, player.getName(), price);
                     return result == null || !(result instanceof Boolean) || (Boolean) result;
                 } catch (Exception ignored) {
                 }
