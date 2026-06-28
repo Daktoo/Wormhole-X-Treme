@@ -125,6 +125,24 @@ public class StargateDBManager {
                 stmt.close();
                 WXTLogger.prettyLog(Level.INFO, false,
                         "VisitCount column added and all existing records set to 0.");
+
+                // Invalidate all cached prepared statements so they are
+                // rebuilt against the updated schema on next use.
+                wormholeSQLConnection.close();
+                storeStatement = null;
+                updateGateStatement = null;
+                getGateStatement = null;
+                removeStatement = null;
+                incrementVisitStatement = null;
+                getAllIndvPermStatement = null;
+                updateIndvPermStatement = null;
+                storeIndvPermStatement = null;
+                getIndvPermStatement = null;
+
+                // Reconnect with a fresh connection so SELECT * sees the new column.
+                connectDB();
+                WXTLogger.prettyLog(Level.INFO, false,
+                        "Reconnected to DB after VisitCount migration.");
             } catch (SQLException e2) {
                 WXTLogger.prettyLog(Level.SEVERE, false,
                         "Failed to add VisitCount column: " + e2.getMessage());
