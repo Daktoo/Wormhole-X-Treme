@@ -184,11 +184,9 @@ public class DBUpdateUtil {
                 return false;
             }
         }
-        // If DB file already exists, skip migration entirely
         File dbFile = new File("./plugins/WormholeXTreme/WormholeXTremeDB/WormholeXTreme.sqlite");
         if (dbFile.exists() && dbFile.length() > 0) {
-            WXTLogger.prettyLog(Level.INFO, false, "Database already initialised, skipping migration.");
-            return true;
+            WXTLogger.prettyLog(Level.INFO, false, "Database already exists; checking for schema updates.");
         }
         try {
             Class.forName("org.sqlite.JDBC");
