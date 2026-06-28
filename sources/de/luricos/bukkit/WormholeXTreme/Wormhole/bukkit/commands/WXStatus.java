@@ -19,7 +19,7 @@ public class WXStatus implements CommandExecutor, TabCompleter {
     private static final String[] PLUGIN_COMMANDS = {
         "dial", "wormhole", "wxlist", "wxbuild", "wxbuildlist",
         "wxremove", "wxcompass", "wxcomplete", "wxidc", "wxforce",
-        "wxgo", "wxreload", "wxstatus", "wxtop"
+        "wxgo", "wxreload", "wxstatus", "wxtop", "wxconvertdb"
     };
 
     @Override

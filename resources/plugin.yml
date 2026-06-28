@@ -51,6 +51,9 @@ commands:
     description: Show system status.
     aliases: [wxs]
     usage: /<command> [all]
+  wxconvertdb:
+    description: Convert a NovyXtreme stargatesList.json database into the WormholeXTreme database.
+    usage: /<command>
 permissions:
   wormhole.use.sign:
     description: Player is able to use the dialer sign

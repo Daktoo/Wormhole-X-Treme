@@ -14,6 +14,7 @@ import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.WXList;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.WXReload;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.WXRemove;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.WXTop;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.WXConvertDB;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.WXStatus;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.Wormhole;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.config.ConfigManager;
@@ -76,7 +77,6 @@ public class WormholeXTreme extends JavaPlugin {
     public boolean reloadPlugin() {
         WXTLogger.prettyLog(Level.INFO, true, "Reload in progress...");
         try {
-            // Reload configuration from Settings.txt so user edits are applied
             ConfigManager.setupConfigs(getDescription());
             ArrayList<Stargate> gates = StargateManager.getAllGates();
             for (Stargate gate : gates) {
@@ -273,6 +273,8 @@ public class WormholeXTreme extends JavaPlugin {
         WXStatus wxstatus = new WXStatus();
         tp.getCommand("wxstatus").setExecutor(wxstatus);
         tp.getCommand("wxstatus").setTabCompleter(wxstatus);
+
+        tp.getCommand("wxconvertdb").setExecutor(new WXConvertDB());
     }
 
     public static void registerEvents(boolean critical) {
