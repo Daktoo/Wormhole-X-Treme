@@ -466,7 +466,7 @@ public class EconomyManager {
     }
 
     private static Object getEconomyPluginObject(Plugin economyPlugin) {
-        for (String methodName : new String[]{"getEconomy", "getEconomyHandler", "getMoneyEconomy"}) {
+        for (String methodName : new String[]{"getEconomy", "getEconomyHandler", "getMoneyEconomy", "getAPI", "getApi", "getEconomyAPI", "getProvider", "getEconomyManager", "getEconomyPlus"}) {
             try {
                 Method method = economyPlugin.getClass().getMethod(methodName);
                 Object economy = method.invoke(economyPlugin);
@@ -474,6 +474,17 @@ public class EconomyManager {
                     return economy;
                 }
             } catch (NoSuchMethodException ignored) {
+            } catch (Exception ignored) {
+            }
+        }
+        // Try common field names that may hold an API object (plugin-specific)
+        for (String fieldName : new String[]{"economy", "api", "economyApi", "economyManager"}) {
+            try {
+                java.lang.reflect.Field f = economyPlugin.getClass().getDeclaredField(fieldName);
+                f.setAccessible(true);
+                Object val = f.get(economyPlugin);
+                if (val != null) return val;
+            } catch (NoSuchFieldException ignored) {
             } catch (Exception ignored) {
             }
         }
