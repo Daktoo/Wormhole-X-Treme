@@ -22,7 +22,7 @@ public class EconomyManager {
             + "WormholeXTreme" + File.separator + "GateShapePrices.txt";
 
     private static final String[] ECONOMY_PLUGINS = {
-        "Vault", "iConomy", "Essentials", "BOSEconomy", "MineConomy"
+        "Vault", "iConomy", "Essentials", "BOSEconomy", "MineConomy", "EconomyPlus"
     };
 
     private static boolean economyEnabled = false;
