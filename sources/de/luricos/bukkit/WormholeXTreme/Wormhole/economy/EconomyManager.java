@@ -200,11 +200,22 @@ public class EconomyManager {
                 "[Economy] Charging " + player.getName() + " " + price
                 + " for shape '" + shapeName + "' via " + detectedPlugin + ".");
 
+        ChargeResult staticResult = chargeViaEconomyStaticApi(player, shapeName, price);
+        if (staticResult != ChargeResult.API_UNAVAILABLE) {
+            return staticResult == ChargeResult.SUCCESS;
+        }
+
         if (vaultEconomy != null && vaultHas != null && vaultWithdraw != null) {
             return chargeViaVaultApi(player, shapeName, price);
         }
 
         return chargeViaCommand(player, shapeName, price);
+    }
+
+    private enum ChargeResult {
+        SUCCESS,
+        INSUFFICIENT_FUNDS,
+        API_UNAVAILABLE
     }
 
     private static boolean chargeViaPluginApi(Player player, String shapeName, double price) {
@@ -372,8 +383,9 @@ public class EconomyManager {
         }
 
         try {
-            if (chargeViaEconomyStaticApi(player, shapeName, price)) {
-                return true;
+            ChargeResult staticResult = chargeViaEconomyStaticApi(player, shapeName, price);
+            if (staticResult != ChargeResult.API_UNAVAILABLE) {
+                return staticResult == ChargeResult.SUCCESS;
             }
 
             Object economy = getEconomyPluginObject(economyPlugin);
@@ -392,7 +404,7 @@ public class EconomyManager {
         return false;
     }
 
-    private static boolean chargeViaEconomyStaticApi(Player player, String shapeName, double price) {
+    private static ChargeResult chargeViaEconomyStaticApi(Player player, String shapeName, double price) {
         try {
             Class<?> economyApiClass = Class.forName("com.earth2me.essentials.api.Economy");
             Method hasMethod = findMethod(economyApiClass, "has", String.class, double.class);
@@ -404,7 +416,7 @@ public class EconomyManager {
                 withdrawMethod = findMethod(economyApiClass, "subtract", String.class, double.class);
             }
             if (hasMethod == null || withdrawMethod == null) {
-                return false;
+                return ChargeResult.API_UNAVAILABLE;
             }
 
             boolean enough = (boolean) hasMethod.invoke(null, player.getName(), price);
@@ -415,26 +427,26 @@ public class EconomyManager {
                 WXTLogger.prettyLog(Level.INFO, false,
                         "[Economy] " + player.getName() + " cannot afford " + price
                         + " for '" + shapeName + "'.");
-                return false;
+                return ChargeResult.INSUFFICIENT_FUNDS;
             }
 
             Object result = withdrawMethod.invoke(null, player.getName(), price);
             if (result instanceof Boolean && !((Boolean) result)) {
-                return false;
+                return ChargeResult.INSUFFICIENT_FUNDS;
             }
             player.sendMessage(
                     "§3:: §7" + price + " has been deducted from your balance "
                     + "for building a " + shapeName + " stargate.");
             WXTLogger.prettyLog(Level.INFO, false,
-                    "[Economy] Economy static API: charged " + player.getName() + " "
+                    "[Economy] Essentials static API: charged " + player.getName() + " "
                     + price + " for '" + shapeName + "'.");
-            return true;
+            return ChargeResult.SUCCESS;
         } catch (ClassNotFoundException ignored) {
-            return false;
+            return ChargeResult.API_UNAVAILABLE;
         } catch (Exception e) {
             WXTLogger.prettyLog(Level.WARNING, false,
-                    "[Economy] Economy static API error for " + player.getName() + ": " + e.getMessage());
-            return false;
+                    "[Economy] Essentials static API error for " + player.getName() + ": " + e.getMessage());
+            return ChargeResult.API_UNAVAILABLE;
         }
     }
 
