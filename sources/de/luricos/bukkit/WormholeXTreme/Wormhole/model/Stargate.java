@@ -84,6 +84,10 @@ public class Stargate {
     private boolean stargateIsValid = true;
 
     public void animateOpening() {
+        if (!isGateLightsActive()) {
+            clearWooshAnimation();
+            return;
+        }
         Material wooshMaterial = isGateCustom() ? getGateCustomPortalMaterial() : getGateShape() != null ? getGateShape().getShapePortalMaterial() : Material.WATER;
         int wooshDepth = isGateCustom() ? getGateCustomWooshDepth() : getGateShape() != null ? getGateShape().getShapeWooshDepth() : 0;
         if (getGateWooshBlocks() != null && getGateWooshBlocks().size() > 0) {
@@ -386,6 +390,17 @@ public class Stargate {
 
     private ArrayList<Block> getGateAnimatedBlocks() {
         return this.gateAnimatedBlocks;
+    }
+
+    public void clearWooshAnimation() {
+        for (Block b : getGateAnimatedBlocks()) {
+            if (b != null) {
+                b.setType(Material.AIR);
+            }
+        }
+        getGateAnimatedBlocks().clear();
+        setGateAnimationStep2D(0);
+        setGateAnimationStep3D(1);
     }
 
     public int getGateAnimationStep2D() {

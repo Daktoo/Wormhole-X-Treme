@@ -967,6 +967,7 @@ public class Wormhole implements CommandExecutor, TabCompleter {
         if (gate.isGateActive() || gate.isGateLightsActive()) {
             gate.shutdownStargate(false);
         }
+        gate.clearWooshAnimation();
 
         String shapeName = gate.getGateShape() != null ? gate.getGateShape().getShapeName() : null;
         StargateShape freshShape = shapeName != null ? StargateHelper.getStargateShape(shapeName) : null;
