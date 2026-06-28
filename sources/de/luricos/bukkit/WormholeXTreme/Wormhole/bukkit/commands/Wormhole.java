@@ -6,11 +6,13 @@ import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.StargateHelper;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.Stargate;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateDBManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateManager;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateShape;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.permissions.PermissionsManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.permissions.WXPermissions;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.utils.WXTLogger;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.utils.WorldUtils;
 import java.util.ArrayList;
+import org.bukkit.Location;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -34,7 +36,7 @@ public class Wormhole implements CommandExecutor, TabCompleter {
         "portalmaterial", "redstone", "regenerate", "regen",
         "restrict", "show_gwm", "show_transport", "simple",
         "timeout", "shutdown_timeout", "toggle_gwm", "toggle_transport",
-        "wooshdepth"
+        "updategate", "wooshdepth"
     );
 
     private static final List<String> BOOL_VALUES = Arrays.asList("true", "false");
@@ -66,8 +68,9 @@ public class Wormhole implements CommandExecutor, TabCompleter {
                 case "portalmaterial":
                 case "wooshdepth":
                 case "legacyfixgate": case "legacyfixgates":
+                case "updategate":
                     List<String> gateNames = getGateNames();
-                    if (sub.equals("custom") || sub.equals("legacyfixgate") || sub.equals("legacyfixgates")) {
+                    if (sub.equals("custom") || sub.equals("legacyfixgate") || sub.equals("legacyfixgates") || sub.equals("updategate")) {
                         gateNames.add("-all");
                     }
                     return filterPrefix(gateNames, args[1]);
@@ -185,6 +188,7 @@ public class Wormhole implements CommandExecutor, TabCompleter {
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole kickback_count §8[n]");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole gateinfo §8[gate]");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole legacyfixgate §8[gate] -f");
+        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole updategate §8<gate|-all>");
     }
 
 
@@ -266,6 +270,9 @@ public class Wormhole implements CommandExecutor, TabCompleter {
             }
             if (a[0].equalsIgnoreCase("gateinfo")) {
                 return doShowInfo(sender, a);
+            }
+            if (a[0].equalsIgnoreCase("updategate")) {
+                return doUpdateGate(sender, a);
             }
 
             sender.sendMessage(ConfigManager.MessageStrings.requestInvalid.toString() + ": " + a[0]);
@@ -914,6 +921,124 @@ public class Wormhole implements CommandExecutor, TabCompleter {
             return true;
         }
         sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Gate '" + args[1] + "' not found in database");
+        return true;
+    }
+
+    public static boolean doUpdateGate(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Syntax: /wormhole updategate <gate|-all>");
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("-all")) {
+            ArrayList<Stargate> gates = StargateManager.getAllGates();
+            int success = 0;
+            int fail = 0;
+            for (Stargate gate : gates) {
+                if (updateSingleGate(gate)) {
+                    success++;
+                } else {
+                    fail++;
+                    WXTLogger.prettyLog(Level.WARNING, false, "updategate: failed to update '" + gate.getGateName() + "'");
+                }
+            }
+            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+                    + "Updated " + success + " gate(s). " + (fail > 0 ? fail + " failed (check console)." : ""));
+            return true;
+        }
+        Stargate gate = StargateManager.getStargate(args[1]);
+        if (gate == null) {
+            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Gate not found: " + args[1]);
+            return true;
+        }
+        if (updateSingleGate(gate)) {
+            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Gate '" + gate.getGateName() + "' updated successfully.");
+        } else {
+            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Failed to update '" + gate.getGateName() + "' — shape could not be re-detected. Is the gate structure still intact?");
+        }
+        return true;
+    }
+
+    private static boolean updateSingleGate(Stargate gate) {
+        if (gate.getGateDialLeverBlock() == null || gate.getGateFacing() == null) {
+            WXTLogger.prettyLog(Level.WARNING, false, "updategate: gate '" + gate.getGateName() + "' has no button block or facing, skipping.");
+            return false;
+        }
+
+        if (gate.isGateActive() || gate.isGateLightsActive()) {
+            gate.shutdownStargate(false);
+        }
+
+        String shapeName = gate.getGateShape() != null ? gate.getGateShape().getShapeName() : null;
+        StargateShape freshShape = shapeName != null ? StargateHelper.getStargateShape(shapeName) : null;
+
+        if (freshShape == null) {
+            WXTLogger.prettyLog(Level.WARNING, false, "updategate: no shape found for gate '" + gate.getGateName() + "' (shape=" + shapeName + ").");
+            return false;
+        }
+
+        Stargate detected = StargateHelper.checkStargate(gate.getGateDialLeverBlock(), gate.getGateFacing(), freshShape);
+        if (detected == null) {
+            WXTLogger.prettyLog(Level.WARNING, false, "updategate: shape re-detection failed for '" + gate.getGateName() + "'. Structure may have changed.");
+            return false;
+        }
+
+        for (Location loc : gate.getGateStructureBlocks()) {
+            StargateManager.removeBlockIndex(gate.getGateWorld().getBlockAt(loc));
+        }
+        for (Location loc : gate.getGatePortalBlocks()) {
+            StargateManager.removeBlockIndex(gate.getGateWorld().getBlockAt(loc));
+        }
+        for (ArrayList<Location> layer : gate.getGateLightBlocks()) {
+            for (Location loc : layer) {
+                StargateManager.removeBlockIndex(gate.getGateWorld().getBlockAt(loc));
+            }
+        }
+        for (ArrayList<Location> layer : gate.getGateWooshBlocks()) {
+            for (Location loc : layer) {
+                StargateManager.removeBlockIndex(gate.getGateWorld().getBlockAt(loc));
+            }
+        }
+
+        gate.getGateStructureBlocks().clear();
+        gate.getGatePortalBlocks().clear();
+        gate.getGateLightBlocks().clear();
+        gate.getGateWooshBlocks().clear();
+
+        gate.getGateStructureBlocks().addAll(detected.getGateStructureBlocks());
+        gate.getGatePortalBlocks().addAll(detected.getGatePortalBlocks());
+        gate.getGateLightBlocks().addAll(detected.getGateLightBlocks());
+        gate.getGateWooshBlocks().addAll(detected.getGateWooshBlocks());
+        gate.setGateShape(freshShape);
+
+        if (detected.getGatePlayerTeleportLocation() != null) {
+            gate.setGatePlayerTeleportLocation(detected.getGatePlayerTeleportLocation());
+        }
+        if (detected.getGateMinecartTeleportLocation() != null) {
+            gate.setGateMinecartTeleportLocation(detected.getGateMinecartTeleportLocation());
+        }
+
+        for (Location loc : gate.getGateStructureBlocks()) {
+            StargateManager.addBlockIndex(gate.getGateWorld().getBlockAt(loc), gate);
+        }
+        for (Location loc : gate.getGatePortalBlocks()) {
+            StargateManager.addBlockIndex(gate.getGateWorld().getBlockAt(loc), gate);
+        }
+        for (ArrayList<Location> layer : gate.getGateLightBlocks()) {
+            for (Location loc : layer) {
+                StargateManager.addBlockIndex(gate.getGateWorld().getBlockAt(loc), gate);
+            }
+        }
+        for (ArrayList<Location> layer : gate.getGateWooshBlocks()) {
+            for (Location loc : layer) {
+                StargateManager.addBlockIndex(gate.getGateWorld().getBlockAt(loc), gate);
+            }
+        }
+
+        gate.toggleDialLeverState(true);
+        gate.setupGateSign(true);
+        StargateDBManager.stargateToSQL(gate);
+
+        WXTLogger.prettyLog(Level.INFO, false, "updategate: '" + gate.getGateName() + "' updated with shape '" + freshShape.getShapeName() + "'.");
         return true;
     }
 }
