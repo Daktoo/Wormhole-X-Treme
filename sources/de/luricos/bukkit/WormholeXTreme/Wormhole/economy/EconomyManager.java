@@ -204,12 +204,6 @@ public class EconomyManager {
             return chargeViaVaultApi(player, shapeName, price);
         }
 
-        if (detectedPlugin != null && !detectedPlugin.equalsIgnoreCase("Vault")) {
-            if (chargeViaPluginApi(player, shapeName, price)) {
-                return true;
-            }
-        }
-
         return chargeViaCommand(player, shapeName, price);
     }
 
@@ -421,7 +415,7 @@ public class EconomyManager {
                 WXTLogger.prettyLog(Level.INFO, false,
                         "[Economy] " + player.getName() + " cannot afford " + price
                         + " for '" + shapeName + "'.");
-                return true;
+                return false;
             }
 
             Object result = withdrawMethod.invoke(null, player.getName(), price);
@@ -602,7 +596,7 @@ public class EconomyManager {
         } catch (Exception e) {
             WXTLogger.prettyLog(Level.WARNING, false,
                     "[Economy] Vault API error for " + player.getName() + ": " + e.getMessage());
-            return true;
+            return false;
         }
     }
 
