@@ -23,8 +23,6 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.Sign;
-import org.bukkit.block.data.Directional;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -180,6 +178,7 @@ public class WXConvertDB implements CommandExecutor {
             }
 
             s.toggleDialLeverState(true);
+            s.setupGateSign(true);
             StargateDBManager.stargateToSQL(s);
 
             sender.sendMessage(ConfigManager.MessageStrings.normalHeader
@@ -213,38 +212,14 @@ public class WXConvertDB implements CommandExecutor {
         return raw;
     }
 
-    /**
-     * Physically builds the NovyXtreme gate structure in the world.
-     *
-     * NovyXtreme gate shape (7 rows x 7 cols, row 0 = bottom, O=OBSIDIAN, .=AIR, *=any):
-     *   row 6 (top):   * * O O O * *
-     *   row 5:         * O . . . O *
-     *   row 4:         O . . . . . O
-     *   row 3:         O . . . . . O
-     *   row 2:         O . . . . . O
-     *   row 1:         * O . . . O *
-     *   row 0 (bot):   * * O O O * *
-     *
-     * The lever sits outside the gate face at the position NXT uses as its DHD.
-     * For NORTH: origin (col0 row0) = leverX+5, leverY-1, leverZ+4 scanning X- Y+
-     * For SOUTH: origin (col0 row0) = leverX-5, leverY-1, leverZ-4 scanning X+ Y+
-     * For EAST:  origin (col0 row0) = leverX-4, leverY-1, leverZ+5 scanning Z- Y+
-     * For WEST:  origin (col0 row0) = leverX+4, leverY-1, leverZ-5 scanning Z+ Y+
-     */
+
     private static final boolean[][] NXT_SHAPE = {
-        // row 0 (bottom): col 0-6
         {false, false, true,  true,  true,  false, false},
-        // row 1
         {false, true,  false, false, false, true,  false},
-        // row 2
         {true,  false, false, false, false, false, true },
-        // row 3
         {true,  false, false, false, false, false, true },
-        // row 4
         {true,  false, false, false, false, false, true },
-        // row 5
         {false, true,  false, false, false, true,  false},
-        // row 6 (top)
         {false, false, true,  true,  true,  false, false}
     };
 
@@ -287,24 +262,4 @@ public class WXConvertDB implements CommandExecutor {
         leverLoc.getBlock().setType(Material.LEVER);
     }
 
-    private static void placeGateSign(Stargate s) {
-        if (s.getGateNameBlockHolder() == null) return;
-        try {
-            Block signBlock = s.getGateNameBlockHolder();
-            signBlock.setType(Material.OAK_WALL_SIGN);
-            Sign sign = (Sign) signBlock.getState();
-            Directional data = (Directional) sign.getBlockData();
-            data.setFacing(s.getGateFacing());
-            sign.setBlockData(data);
-            sign.setLine(1, "-" + s.getGateName() + "-");
-            if (s.getGateOwner() != null) {
-                sign.setLine(2, "O:" + s.getGateOwner());
-            }
-            sign.update(true, true);
-        } catch (Exception e) {
-            WXTLogger.prettyLog(Level.WARNING, false,
-                    "[wxconvertdb] Could not place sign for gate '" + s.getGateName()
-                    + "': " + e.getMessage());
-        }
-    }
 }
