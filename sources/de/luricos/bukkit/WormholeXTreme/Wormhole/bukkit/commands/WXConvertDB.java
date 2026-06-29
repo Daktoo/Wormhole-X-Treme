@@ -157,6 +157,7 @@ public class WXConvertDB implements CommandExecutor {
             s.setVisitCount(timesVisited);
             s.setGateFacing(facing);
             StargateManager.addGateToNetwork(s, "Public");
+            s.setGateNetwork(StargateManager.getStargateNetwork("Public"));
 
             StargateManager.addStargate(s);
             for (Location loc : s.getGateStructureBlocks()) {
