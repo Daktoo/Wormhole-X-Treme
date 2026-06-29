@@ -157,8 +157,6 @@ public class WXConvertDB implements CommandExecutor {
             s.setVisitCount(timesVisited);
             s.setGateFacing(facing);
 
-            placeGateSign(s);
-
             StargateManager.addStargate(s);
             for (Location loc : s.getGateStructureBlocks()) {
                 StargateManager.addBlockIndex(world.getBlockAt(loc), s);
@@ -211,7 +209,6 @@ public class WXConvertDB implements CommandExecutor {
         }
         return raw;
     }
-
 
     private static final boolean[][] NXT_SHAPE = {
         {false, false, true,  true,  true,  false, false},
