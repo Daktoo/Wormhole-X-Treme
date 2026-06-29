@@ -44,7 +44,7 @@ public class Wormhole implements CommandExecutor, TabCompleter {
     private static final List<String> LOG_LEVELS   = Arrays.asList("SEVERE", "WARNING", "INFO", "CONFIG", "FINE", "FINER", "FINEST");
     private static final List<String> SIMPLE_VALS  = Arrays.asList("true", "false", "yes", "no");
     private static final List<String> IRIS_MATS    = Arrays.asList("STONE", "DIAMOND_BLOCK", "GLASS", "IRON_BLOCK", "BEDROCK", "LAPIS_BLOCK");
-    private static final List<String> LIGHT_MATS   = Arrays.asList("GLOWSTONE", "GLOWING_REDSTONE_ORE");
+    private static final List<String> LIGHT_MATS   = Arrays.asList("GLOWSTONE", "REDSTONE_ORE", "SEA_LANTERN");
     private static final List<String> PORTAL_MATS  = Arrays.asList("WATER", "LAVA", "AIR", "NETHER_PORTAL");
     private static final List<String> PERM_PROVIDERS = Arrays.asList("vault", "bukkit");
 
@@ -123,7 +123,18 @@ public class Wormhole implements CommandExecutor, TabCompleter {
                     return filterPrefix(LIGHT_MATS, args[2]);
 
                 case "portalmaterial":
-                    return filterPrefix(PORTAL_MATS, args[2]);
+                    List<String> portalOpts = new ArrayList<>(PORTAL_MATS);
+                    if (args.length == 3 && args[1] != null) {
+                        Stargate pgGate = StargateManager.getStargate(args[1]);
+                        if (pgGate != null && pgGate.getGateShape() != null) {
+                            String sn = pgGate.getGateShape().getShapeName().toLowerCase();
+                            if (sn.equals("horizontal") || sn.equals("horizontalsigndial")) {
+                                portalOpts = new ArrayList<>(PORTAL_MATS);
+                                portalOpts.add("END_PORTAL");
+                            }
+                        }
+                    }
+                    return filterPrefix(portalOpts, args[2]);
 
                 case "cooldown":
                     return Collections.emptyList(); 
@@ -179,7 +190,7 @@ public class Wormhole implements CommandExecutor, TabCompleter {
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole regenerate|regen §8<gate>");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole portalmaterial §8<gate> [material]");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole irismaterial §8<gate> [material]");
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole lightmaterial §8<gate> [material]");
+        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole lightmaterial §8<gate> [GLOWSTONE|REDSTONE_ORE|SEA_LANTERN]");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole wooshdepth §8<gate> [0-5]");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole debug §8<SEVERE|WARNING|INFO|FINE|FINER|FINEST>");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole permissions §8[provider]");
@@ -447,7 +458,7 @@ public class Wormhole implements CommandExecutor, TabCompleter {
     private static boolean doLightMaterial(CommandSender sender, String[] args) {
         if (args.length != 3 && args.length != 2) {
             sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Syntax: /wormhole lightmaterial [stargate] <material>");
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid materials are: GLOWSTONE, GLOWING_REDSTONE_ORE");
+            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid materials are: GLOWSTONE, REDSTONE_ORE, SEA_LANTERN");
             return true;
         }
         if (StargateManager.isStargate(args[1])) {
@@ -456,17 +467,17 @@ public class Wormhole implements CommandExecutor, TabCompleter {
                 if (args.length == 3) {
                     Material m = null;
                     try { m = Material.valueOf(args[2].trim().toUpperCase()); } catch (Exception e) { WXTLogger.prettyLog(Level.FINE, false, "Caught Exception on light material" + e.getMessage()); }
-                    if (m != null && (m == Material.GLOWSTONE || m == Material.REDSTONE_ORE)) {
+                    if (m != null && (m == Material.GLOWSTONE || m == Material.REDSTONE_ORE || m == Material.SEA_LANTERN)) {
                         stargate.setGateCustomLightMaterial(m);
                         sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + args[1] + " light material set to: " + stargate.getGateCustomLightMaterial());
                         return true;
                     }
                     sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid Light Material: " + args[2]);
-                    sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid materials are: GLOWSTONE, GLOWING_REDSTONE_ORE");
+                    sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid materials are: GLOWSTONE, REDSTONE_ORE, SEA_LANTERN");
                     return true;
                 }
                 sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + args[1] + " light material is currently: " + stargate.getGateCustomLightMaterial());
-                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid materials are: GLOWSTONE, GLOWING_REDSTONE_ORE");
+                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid materials are: GLOWSTONE, REDSTONE_ORE, SEA_LANTERN");
                 return true;
             }
             sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Stargate is not in custom mode. Set it with the '/wormhole custom' command");
@@ -474,7 +485,7 @@ public class Wormhole implements CommandExecutor, TabCompleter {
         }
         sender.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString());
         sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Syntax: /wormhole lightmaterial [stargate] <material>");
-        sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid materials are: GLOWSTONE, GLOWING_REDSTONE_ORE");
+        sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid materials are: GLOWSTONE, REDSTONE_ORE, SEA_LANTERN");
         return true;
     }
 
@@ -524,21 +535,34 @@ public class Wormhole implements CommandExecutor, TabCompleter {
         }
         Stargate stargate = StargateManager.getStargate(args[1]);
         if (stargate.isGateCustom()) {
+            boolean isHorizontal = stargate.getGateShape() != null &&
+                    (stargate.getGateShape().getShapeName().equalsIgnoreCase("Horizontal") ||
+                     stargate.getGateShape().getShapeName().equalsIgnoreCase("HorizontalSignDial"));
+            String validMats = isHorizontal
+                    ? "WATER, LAVA, AIR, NETHER_PORTAL, END_PORTAL"
+                    : "WATER, LAVA, AIR, NETHER_PORTAL";
             if (args.length == 3) {
                 Material m = null;
                 try { m = Material.valueOf(args[2].trim().toUpperCase()); } catch (Exception e) { WXTLogger.prettyLog(Level.FINE, false, "Caught Exception on portal material" + e.getMessage()); }
-                if (m != null && (m == Material.LAVA || m == Material.WATER || m == Material.AIR || m == Material.NETHER_PORTAL)) {
+                boolean valid = m != null && (m == Material.LAVA || m == Material.WATER || m == Material.AIR || m == Material.NETHER_PORTAL);
+                if (!valid && isHorizontal && m == Material.END_PORTAL) {
+                    valid = true;
+                }
+                if (valid) {
                     stargate.setGateCustomPortalMaterial(m);
                     sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + gateName + " portal material set to: " + stargate.getGateCustomPortalMaterial());
                     StargateDBManager.stargateToSQL(stargate);
                     return true;
                 }
                 sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid Portal Material: " + gateMaterial);
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid materials are: WATER, LAVA, AIR, NETHER_PORTAL");
+                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid materials are: " + validMats);
+                if (!isHorizontal && args[2].trim().equalsIgnoreCase("END_PORTAL")) {
+                    sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "END_PORTAL is only available for Horizontal and HorizontalSignDial gate shapes.");
+                }
                 return true;
             }
             sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + gateName + " portal material is currently: " + stargate.getGateCustomPortalMaterial());
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid materials are: WATER, LAVA, AIR, NETHER_PORTAL");
+            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid materials are: " + validMats);
             return true;
         }
         sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Stargate is not in custom mode. Set it with the '/wormhole custom' command");

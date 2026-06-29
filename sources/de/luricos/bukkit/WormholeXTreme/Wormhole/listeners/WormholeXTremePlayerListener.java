@@ -379,7 +379,7 @@ public class WormholeXTremePlayerListener implements Listener {
                               BlockFace.EAST, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN };
         for (BlockFace face : faces) {
             Block candidate = block.getRelative(face);
-            if (candidate.getType() == Material.NETHER_PORTAL
+            if ((candidate.getType() == Material.NETHER_PORTAL || candidate.getType() == Material.END_PORTAL)
                     && StargateManager.isBlockInGate(candidate)) {
                 return true;
             }
