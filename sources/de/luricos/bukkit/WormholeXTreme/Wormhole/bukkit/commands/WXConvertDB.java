@@ -187,7 +187,7 @@ public class WXConvertDB implements CommandExecutor {
             converted++;
         }
 
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§6--- Conversion complete ---");
+        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "Conversion complete §3::");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader
                 + "§2Converted: " + converted + "  §8|  §eSkipped: " + skipped);
         if (!skippedNames.isEmpty()) {
