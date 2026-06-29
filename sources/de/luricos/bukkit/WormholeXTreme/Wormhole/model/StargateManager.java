@@ -73,7 +73,7 @@ public class StargateManager {
         getPlayerBuilders().remove(playerName);
     }
 
-    protected static void addStargate(Stargate s) {
+    public static void addStargate(Stargate s) {
         getStargateList().put(s.getGateName(), s);
         for (Location b : s.getGateStructureBlocks()) {
             getAllGateBlocks().put(b, s);

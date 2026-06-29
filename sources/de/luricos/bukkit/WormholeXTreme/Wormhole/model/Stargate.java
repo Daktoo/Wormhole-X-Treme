@@ -397,11 +397,13 @@ public class Stargate {
         for (Block b : getGateAnimatedBlocks()) {
             if (b != null) {
                 b.setType(Material.AIR);
+                StargateManager.getOpeningAnimationBlocks().remove(b.getLocation());
             }
         }
         getGateAnimatedBlocks().clear();
         setGateAnimationStep2D(0);
         setGateAnimationStep3D(1);
+        setGateAnimationRemoving(false);
     }
 
     public int getGateAnimationStep2D() {
