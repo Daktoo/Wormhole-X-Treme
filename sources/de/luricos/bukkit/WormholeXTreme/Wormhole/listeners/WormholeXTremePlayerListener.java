@@ -34,6 +34,7 @@ import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.entity.EntityPortalEvent;
 import org.bukkit.material.Button;
+import org.bukkit.util.Vector;
 import org.bukkit.material.Lever;
 
 /* JADX INFO: loaded from: WormholeXTreme.jar:de/luricos/bukkit/WormholeXTreme/Wormhole/listeners/WormholeXTremePlayerListener.class */
@@ -296,44 +297,7 @@ public class WormholeXTremePlayerListener implements Listener {
                     if (stargate.getGateTarget().isGateIrisActive() && !wormholePlayer.getProperties().hasReceivedIrisLockMessage()) {
                         player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Remote Iris is locked!");
                         wormholePlayer.getProperties().setHasReceivedIrisLockMessage(true);
-                        int wkbCount = ConfigManager.getWormholeKickbackBlockCount();
-                        if (wkbCount > 0) {
-                            player.setNoDamageTicks(5);
-                            PlayerOrientation direction = wormholePlayer.getKickBackDirection(wormholePlayer.getStargate().getGateFacing().getOppositeFace());
-                            double pLocX = wormholePlayer.getPlayer().getLocation().getX();
-                            double pLocY = wormholePlayer.getPlayer().getLocation().getY();
-                            double pLocZ = wormholePlayer.getPlayer().getLocation().getZ();
-                            WXTLogger.prettyLog(Level.FINE, false, "PlayerOrientation: " + direction.getName());
-                            WXTLogger.prettyLog(Level.FINE, false, "old X:" + pLocX + ", Y:" + pLocY + ", Z:" + pLocZ);
-                            switch (direction) {
-                                case NORTH:
-                                    WXTLogger.prettyLog(Level.FINE, false, "NORTH: " + pLocZ + " - 2 = " + (pLocX - 2.0d));
-                                    pLocZ -= (double) wkbCount;
-                                    break;
-                                case SOUTH:
-                                    WXTLogger.prettyLog(Level.FINE, false, "SOUTH: " + pLocZ + " + 2 = " + (pLocX + 2.0d));
-                                    pLocZ += (double) wkbCount;
-                                    break;
-                                case EAST:
-                                    WXTLogger.prettyLog(Level.FINE, false, "EAST: " + pLocX + " + 2 = " + (pLocZ - 2.0d));
-                                    pLocX += (double) wkbCount;
-                                    break;
-                                case WEST:
-                                    WXTLogger.prettyLog(Level.FINE, false, "WEST: " + pLocX + " - 2 = " + (pLocZ + 2.0d));
-                                    pLocX -= (double) wkbCount;
-                                    break;
-                            }
-                            Location newLoc = new Location(player.getWorld(), pLocX, pLocY, pLocZ, player.getLocation().getYaw(), player.getLocation().getPitch());
-                            double pLocY2 = player.getWorld().getHighestBlockYAt(newLoc);
-                            if (ConfigManager.getGateTransportMethod()) {
-                                event.setTo(newLoc);
-                                WXTLogger.prettyLog(Level.FINE, false, "Player was kicked back via event");
-                            } else {
-                                player.teleport(newLoc);
-                                WXTLogger.prettyLog(Level.FINE, false, "Player was kicked back via teleport");
-                            }
-                            WXTLogger.prettyLog(Level.FINE, false, "new X:" + pLocX + ", Y:" + pLocY2 + ", Z:" + pLocZ);
-                        }
+                        kickPlayerBackFromGate(event, player, stargate);
                         return wormholePlayer;
                     }
                     Location target = stargate.getGateTarget().getGatePlayerTeleportLocation();
@@ -402,6 +366,53 @@ public class WormholeXTremePlayerListener implements Listener {
             }
         }
         return false;
+    }
+
+    private void kickPlayerBackFromGate(PlayerMoveEvent event, Player player, Stargate stargate) {
+        int kickbackBlocks = ConfigManager.getWormholeKickbackBlockCount();
+        if (kickbackBlocks <= 0) {
+            return;
+        }
+
+        Location playerLocation = player.getLocation();
+        Location gateLocation = stargate.getGatePlayerTeleportLocation();
+        Vector kickback = playerLocation.toVector().subtract(gateLocation.toVector());
+        kickback.setY(0.0d);
+
+        if (kickback.lengthSquared() < 0.001d) {
+            kickback = getKickbackVectorForGateFacing(stargate.getGateFacing());
+        }
+
+        kickback.normalize().multiply(kickbackBlocks);
+
+        Location newLocation = playerLocation.clone().add(kickback);
+        newLocation.setYaw(playerLocation.getYaw());
+        newLocation.setPitch(playerLocation.getPitch());
+
+        player.setNoDamageTicks(5);
+        if (ConfigManager.getGateTransportMethod()) {
+            event.setTo(newLocation);
+            WXTLogger.prettyLog(Level.FINE, false, "Player was kicked back via event");
+        } else {
+            player.teleport(newLocation);
+            WXTLogger.prettyLog(Level.FINE, false, "Player was kicked back via teleport");
+        }
+        WXTLogger.prettyLog(Level.FINE, false, "Kickback moved player " + kickbackBlocks + " blocks from gate " + stargate.getGateName());
+    }
+
+    private Vector getKickbackVectorForGateFacing(BlockFace gateFacing) {
+        switch (gateFacing) {
+            case NORTH:
+                return new Vector(0.0d, 0.0d, 1.0d);
+            case SOUTH:
+                return new Vector(0.0d, 0.0d, -1.0d);
+            case EAST:
+                return new Vector(-1.0d, 0.0d, 0.0d);
+            case WEST:
+                return new Vector(1.0d, 0.0d, 0.0d);
+            default:
+                return new Vector(0.0d, 0.0d, -1.0d);
+        }
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
