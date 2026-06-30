@@ -40,7 +40,7 @@ public class Build implements CommandExecutor, TabCompleter {
 
     private static boolean doBuild(Player player, String[] args) {
         if (args.length == 1) {
-            if (!WXPermissions.checkPermission(player, WXPermissions.PermissionType.CONFIG) || !WXPermissions.checkPermission(player, WXPermissions.PermissionType.BUILD)) {
+            if (!WXPermissions.checkPermission(player, WXPermissions.PermissionType.BUILD)) {
                 player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
                 return true;
             }

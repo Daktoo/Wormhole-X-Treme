@@ -21,6 +21,7 @@ enum ComplexPermissionType {
     REMOVE_OWN("wormhole.remove.own"),
     REMOVE_ALL("wormhole.remove.all"),
     BUILD("wormhole.build"),
+    BUILD_ALL("wormhole.build.all"),
     BUILD_RESTRICTION_GROUP_ONE("wormhole.build.groupone"),
     BUILD_RESTRICTION_GROUP_TWO("wormhole.build.grouptwo"),
     BUILD_RESTRICTION_GROUP_THREE("wormhole.build.groupthree"),

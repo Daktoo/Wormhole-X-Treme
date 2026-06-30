@@ -130,6 +130,9 @@ public class WXPermissions {
                     } else if (network != null) {
                         networkName = network;
                     }
+                    if (ComplexPermissionType.BUILD_ALL.checkPermission(player)) {
+                        return true;
+                    }
                     return ComplexPermissionType.BUILD.checkPermission(player) && (networkName.equals("Public") || (!networkName.equals("Public") && ComplexPermissionType.NETWORK_BUILD.checkPermission(player, networkName)));
                 case USE_COOLDOWN_GROUP_ONE:
                     return ComplexPermissionType.USE_COOLDOWN_GROUP_ONE.checkPermission(player);

@@ -99,6 +99,9 @@ permissions:
   wormhole.build:
     description: Can build Wormhole
     default: op
+  wormhole.build.all:
+    description: Can build Wormhole on any network, bypassing network.build restrictions
+    default: op
   wormhole.build.groupone:
     description: Build restriction for groupone
     default: false
@@ -112,6 +115,7 @@ permissions:
     description: Can use all build permissions
     children:
       wormhole.build: true
+      wormhole.build.all: true
       wormhole.build.groupone: true
       wormhole.build.grouptwo: true
       wormhole.build.groupthree: true
@@ -120,6 +124,15 @@ permissions:
     default: op
   wormhole.list:
     description: Can list wormhole gates
+    default: true
+  wormhole.list.all:
+    description: Can list all wormhole gates with /wxlist all
+    default: true
+  wormhole.list.self:
+    description: Can list own wormhole gates with /wxlist self
+    default: true
+  wormhole.top:
+    description: Can view the most visited stargates leaderboard with /wxtop
     default: true
   wormhole.network.use:
     description: Can use gate network
