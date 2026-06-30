@@ -1,4 +1,4 @@
-# Wormhole X-Treme v1.1.4
+# Wormhole X-Treme v1.1.5
 
 ## New Install:
 
@@ -7,23 +7,25 @@
 1. Place the file into the plugins/ folder. Once the server fully started, the plugin should
    place all the necessary files into plugins/WormholeXTreme.
    
-2.   (Optional) Stop the server and edit the newly generated /plugins/WormholeXTreme/settings.txt 
+2.   (Optional) Stop the server and edit the newly generated /plugins/WormholeXTreme/Settings.txt 
      file as needed.
 
 3.1. (Optional) Edit gate shapes in /plugins/WormholeXTreme/GateShapes/
 
-3.2. (Optional) If using the Permissions plugin based plugin, set up the appropriate permissions.
+3.2. (Optional) Edit gate shape prices in /plugins/WormholeXTreme/GateShapePrices.txt
+
+3.3. (Optional) If using the Permissions plugin based plugin, set up the appropriate permissions.
      If using SIMPLE_PERMISSIONS = true remember to use permissions from the Simple Mode list, 
      otherwise use nodes from Complex Node.
    
-3.3. (Optional) Start Server again
+3.4. (Optional) Start Server again
 
 
 ## Update:
 
 0.   Download the jar containing plugin, hsqldb, and gate shape files.
 
-1.   Place the WormholeXTreme-1.1.4.jar to your plugins/ folder, overwriting existing file.
+1.   Place the WormholeXTreme-1.1.5.jar to your plugins/ folder, overwriting existing file.
 
 2.   (Optional, if upgrading to 3d shapes) If upgrading from v0.833 or earlier, start server before 
      updating gate shapes. 
@@ -48,7 +50,9 @@
     wormhole.remove.all - lets a user remove any gate
     wormhole.build - Able to build new wormholes
     wormhole.config - Able to configure settings like material and timeout
-    wormhole.list - Able to use '/wxlist' command to list wormholes
+    wormhole.list.all - Able to use '/wxlist all' command to list all wormholes
+    wormhole.list.self - Able to use '/wxlist self' command to list own wormholes
+    wormhole.top - Able to use '/wxtop' command to list most used wormholes
     wormhole.network.use.NETWORKNAME - Able to use wormholes on NETWORKNAME
     wormhole.network.build.NETWORKNAME - Able to build wormholes on NETWORKNAME
     wormhole.go - allows user to use '/wxgo' command.
