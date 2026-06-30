@@ -1448,7 +1448,7 @@ public class StargateHelper {
 
     private static boolean tryCreateGateSign(Block signBlock, Stargate tempGate) {
         WXTLogger.prettyLog(Level.FINE, false, "Trying to create GateSign for gate '" + tempGate.getGateName() + "' in '" + tempGate.getGateWorld().getName() + "'");
-        if (signBlock.getType().equals(Material.OAK_WALL_SIGN)) {
+        if (org.bukkit.Tag.WALL_SIGNS.isTagged(signBlock.getType())) {
             tempGate.setGateSignPowered(true);
             tempGate.setGateDialSignBlock(signBlock);
             tempGate.setGateDialSign((Sign) signBlock.getState());

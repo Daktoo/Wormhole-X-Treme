@@ -957,7 +957,7 @@ public class Stargate {
                 return;
             }
             Block nameSign2 = getGateNameBlockHolder().getRelative(getGateFacing());
-            if (nameSign2.getType().equals(Material.OAK_WALL_SIGN)) {
+            if (org.bukkit.Tag.WALL_SIGNS.isTagged(nameSign2.getType())) {
                 getGateStructureBlocks().remove(nameSign2.getLocation());
                 nameSign2.setType(Material.AIR);
             }
@@ -1289,7 +1289,7 @@ public class Stargate {
 
     public boolean tryClickTeleportSign(Block clickedBlock, Action eventAction, String triggeredByPlayer) {
         if (getGateDialSign() == null && getGateDialSignBlock() != null) {
-            if (getGateDialSignBlock().getType().equals(Material.OAK_WALL_SIGN)) {
+            if (org.bukkit.Tag.WALL_SIGNS.isTagged(getGateDialSignBlock().getType())) {
                 setGateDialSignIndex(-1);
                 if (eventAction == null) {
                     getGateDialSignBlock().setType(Material.AIR);

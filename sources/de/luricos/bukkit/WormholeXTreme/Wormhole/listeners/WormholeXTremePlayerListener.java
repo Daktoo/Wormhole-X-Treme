@@ -226,7 +226,7 @@ public class WormholeXTremePlayerListener implements Listener {
             }
             return false;
         }
-        if (clickedBlock != null && clickedBlock.getType().equals(Material.OAK_WALL_SIGN) && (stargate = StargateManager.getGateFromBlock(clickedBlock)) != null) {
+        if (clickedBlock != null && org.bukkit.Tag.WALL_SIGNS.isTagged(clickedBlock.getType()) && (stargate = StargateManager.getGateFromBlock(clickedBlock)) != null) {
             if (!WXPermissions.checkPermission(player, stargate, WXPermissions.PermissionType.SIGN)) {
                 player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
                 return true;
