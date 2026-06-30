@@ -65,10 +65,18 @@ Layer#2=
 [I][I][I][I][I][I][I]
 [I][I][I][I][I][I][I]
 [I][I][I][I][I][I][I]
-[I][I][S:N][][I][I][I]
-[I][I][S:L:A][I][S:L:D][I][I]
-[I][I][S][I][S:RS][I][I]
+[I][I][S:N][I:W#1][I][I][I]
+[I][I][S:L:A][I:W#1][S:L:D][I][I]
+[I][I][S][I:W#1][S:RS][I][I]
 
+Layer#3=
+[I][I][I][I][I][I][I]
+[I][I][I][I][I][I][I]
+[I][I][I][I][I][I][I]
+[I][I][I][I][I][I][I]
+[I][I][I][I][I][I][I]
+[I][I][I][I:W#2][I][I][I]
+[I][I][I][I][I][I][I]
 
 
 # Number of ticks to wait before activating each # of the woosh. 1 tick = ~50ms
@@ -79,7 +87,7 @@ LIGHT_TICKS = 2;
 # None of the follow materials are required, they will default if not set.
 # Portal material the material the [P] blocks will be when gate is active.
 # Suggested values are as follows: STATIONARY_WATER, STATIONARY_LAVA, PORTAL, and AIR
-PORTAL_MATERIAL=AIR
+PORTAL_MATERIAL=WATER
 
 # Iris material is the material the [P] block become when iris is active
 # Suggested values are as follows: STONE, DIAMOND_BLOCK, GLASS, IRON_BLOCK, BEDROCK, OBSIDIAN, GLOWSTONE and LAPIS_BLOCK
