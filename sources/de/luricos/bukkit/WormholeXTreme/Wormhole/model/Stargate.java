@@ -23,6 +23,7 @@ import org.bukkit.event.block.Action;
 
 /* JADX INFO: loaded from: WormholeXTreme.jar:de/luricos/bukkit/WormholeXTreme/Wormhole/model/Stargate.class */
 public class Stargate {
+    private static final int MAX_SIGN_LINE_LENGTH = 15;
     private StargateNetwork gateNetwork;
     private StargateShape gateShape;
     private World gateWorld;
@@ -450,6 +451,20 @@ public class Stargate {
         return this.gateDialLeverBlock;
     }
 
+    private String fitSignLine(String text, String prefix, String suffix) {
+        if (text == null) {
+            text = "";
+        }
+        int availableLength = MAX_SIGN_LINE_LENGTH - prefix.length() - suffix.length();
+        if (availableLength < 0) {
+            availableLength = 0;
+        }
+        if (text.length() > availableLength) {
+            text = text.substring(0, availableLength);
+        }
+        return prefix + text + suffix;
+    }
+
     public synchronized Sign getGateDialSign() {
         return this.gateDialSign;
     }
@@ -670,7 +685,7 @@ public class Stargate {
         }
         getGateDialSignBlock().setType(Material.OAK_WALL_SIGN); { org.bukkit.block.data.type.WallSign _wsd = (org.bukkit.block.data.type.WallSign) getGateDialSignBlock().getBlockData(); _wsd.setFacing(getGateFacing()); getGateDialSignBlock().setBlockData(_wsd); }
         setGateDialSign((Sign) getGateDialSignBlock().getState());
-        getGateDialSign().setLine(0, getGateName());
+        getGateDialSign().setLine(0, fitSignLine(getGateName(), "", ""));
         if (getGateNetwork() != null) {
             getGateDialSign().setLine(1, getGateNetwork().getNetworkName());
         } else {
@@ -946,7 +961,7 @@ public class Stargate {
                 getGateStructureBlocks().add(nameSign.getLocation());
                 nameSign.setType(Material.OAK_WALL_SIGN); { org.bukkit.block.data.type.WallSign _wsd2 = (org.bukkit.block.data.type.WallSign) nameSign.getBlockData(); _wsd2.setFacing(getGateFacing()); nameSign.setBlockData(_wsd2); }
                 Sign sign = (Sign) nameSign.getState();
-                sign.setLine(0, "-" + getGateName() + "-");
+                sign.setLine(0, fitSignLine(getGateName(), "-", "-"));
                 if (getGateNetwork() != null) {
                     sign.setLine(1, "N:" + getGateNetwork().getNetworkName());
                 }

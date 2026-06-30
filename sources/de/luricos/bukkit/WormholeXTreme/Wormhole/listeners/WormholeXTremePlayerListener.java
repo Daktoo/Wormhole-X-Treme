@@ -39,6 +39,21 @@ import org.bukkit.material.Lever;
 
 /* JADX INFO: loaded from: WormholeXTreme.jar:de/luricos/bukkit/WormholeXTreme/Wormhole/listeners/WormholeXTremePlayerListener.class */
 public class WormholeXTremePlayerListener implements Listener {
+    private static final int MAX_SIGN_LINE_LENGTH = 15;
+    private static String fitSignLine(String text, String prefix, String suffix) {
+        if (text == null) {
+            text = "";
+        }
+        int availableLength = MAX_SIGN_LINE_LENGTH - prefix.length() - suffix.length();
+        if (availableLength < 0) {
+            availableLength = 0;
+        }
+        if (text.length() > availableLength) {
+            text = text.substring(0, availableLength);
+        }
+        return prefix + text + suffix;
+    }
+
     protected static boolean buttonLeverHit(Player player, Block clickedBlock, BlockFace direction) {
         Stargate newGate;
         Stargate stargate = StargateManager.getGateFromBlock(clickedBlock);
@@ -121,7 +136,7 @@ public class WormholeXTremePlayerListener implements Listener {
                     boolean success = StargateManager.completeStargate(player, newGate);
                     if (success) {
                         player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
-                        newGate.getGateDialSign().setLine(0, "-" + newGate.getGateName() + "-");
+                        newGate.getGateDialSign().setLine(0, fitSignLine(newGate.getGateName(), "-", "-"));
                         newGate.getGateDialSign().setData(newGate.getGateDialSign().getData());
                         newGate.getGateDialSign().update();
                         return true;
