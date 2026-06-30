@@ -1,3 +1,20 @@
+Changes 1.1.5 (30/6/26 @ 20:01 BST)
+- Added economy support for players when completing gates, customisable via GateShapePrices.txt - Disabled by default. Requires an up-to-date economy plugin (only tested on Essentials)
+- Added `/wxtop` command to show the most visited gates.
+- Added `/wxlist all` and `/wxlist self` (wormhole.list.all and wormhole.list.self) with new format.
+- Added `/wxconvertdb` for converting NXT JSON to WXT SQLite. 
+- Added `/wormhole updategate` to update old gates to new shape formats.
+- Added LargeSignDial and MinimalSignDial default gate shapes.
+- Added configurable maximum GateName length, default at 50.
+- Added light material `SEA_LANTERN` for all gates.
+- Added portal material `END_PORTAL` for all Horizontal gates.
+- Removed portal material `NETHER_PORTAL` for all Horizontal Gates.
+- `/wxlist` now shows total amount of stargates, and GateOwner.
+- Fixed occasional permanent woosh animations
+- Fixed SignDial sign detection
+- Fixed database migration issues with older DB layouts
+- Updated gate shape material `GLOWING_REDSTONE_ORE` to `REDSTONE_ORE` to match modern Minecraft IDs.
+
 Changes 1.1.4 (27/6/26 @ 14:50 BST):
 - Added tab completion for all WXT commands.
 - Fixed up command /wormhole (alias /wxt) for configuring specific gates.
