@@ -209,7 +209,15 @@ public class EconomyManager {
             return chargeViaVaultApi(player, shapeName, price);
         }
 
-        return chargeViaCommand(player, shapeName, price);
+        if (chargeViaPluginApi(player, shapeName, price)) {
+            return true;
+        }
+
+        WXTLogger.prettyLog(Level.WARNING, false,
+                "[Economy] No working economy API hook was available for "
+                + detectedPlugin + "; build charge cancelled.");
+        player.sendMessage("§3:: §5error §3:: §7Economy transaction failed. Please contact an admin.");
+        return false;
     }
 
     private enum ChargeResult {
