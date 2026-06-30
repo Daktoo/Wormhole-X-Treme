@@ -43,23 +43,35 @@ public class StargateHelper {
     private static final byte[] emptyBlock = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
     public static Stargate checkStargate(Block buttonBlock, BlockFace facing) {
-        Stargate s = null;
+        Stargate bestMatch = null;
+        StargateShape bestShape = null;
         Iterator<String> it = getStargateShapes().keySet().iterator();
-        while (true) {
-            if (!it.hasNext()) {
-                break;
-            }
+        while (it.hasNext()) {
             String key = it.next();
             StargateShape shape = getStargateShapes().get(key);
-            if (shape != null) {
-                s = shape instanceof Stargate3DShape ? checkStargate3D(buttonBlock, facing, (Stargate3DShape) shape, false) : checkStargate(buttonBlock, facing, shape, false);
-                if (s != null) {
-                    WXTLogger.prettyLog(Level.FINE, false, "Shape: " + shape.getShapeName() + " was found!");
-                    break;
+            if (shape == null) {
+                continue;
+            }
+            Stargate s = shape instanceof Stargate3DShape
+                    ? checkStargate3D(buttonBlock, facing, (Stargate3DShape) shape, false)
+                    : checkStargate(buttonBlock, facing, shape, false);
+            if (s != null) {
+                WXTLogger.prettyLog(Level.FINE, false, "Shape: " + shape.getShapeName() + " matched.");
+                // Prefer the most specific match: when multiple shapes match the
+                // same physical structure (e.g. Standard vs StandardSignDial,
+                // where SignDial is a structural superset requiring an extra
+                // dial-sign holder block), pick the one with the most required
+                // structure blocks, since that is the more specific/correct shape.
+                if (bestMatch == null || s.getGateStructureBlocks().size() > bestMatch.getGateStructureBlocks().size()) {
+                    bestMatch = s;
+                    bestShape = shape;
                 }
             }
         }
-        return s;
+        if (bestShape != null) {
+            WXTLogger.prettyLog(Level.FINE, false, "Shape: " + bestShape.getShapeName() + " was selected as the best match!");
+        }
+        return bestMatch;
     }
 
     public static Stargate checkStargate(Block buttonBlock, BlockFace facing, StargateShape shape) {
@@ -383,6 +395,17 @@ public class StargateHelper {
         }
         if (layer.getLayerDialSignPosition().length > 0) {
             Block signBlockHolder = getBlockFromVector(layer.getLayerDialSignPosition(), directionVector, lowerCorner, w);
+            // The :D position must actually be built out of the gate's structure
+            // material for this to be a genuine SignDial-capable gate. Without
+            // this check, a regular (non-dial) shape whose template marks this
+            // coordinate as "ignored" would also match a physically-built
+            // SignDial gate, causing the wrong shape to be detected.
+            if (create) {
+                signBlockHolder.setType(tempGate.getGateShape().getShapeStructureMaterial());
+            } else if (!isStargateMaterial(signBlockHolder, tempGate.getGateShape())) {
+                return false;
+            }
+            tempGate.getGateStructureBlocks().add(signBlockHolder.getLocation());
             Block signBlock = signBlockHolder.getRelative(tempGate.getGateFacing());
             if (!tryCreateGateSign(signBlock, tempGate) && tempGate.isGateSignPowered()) {
                 return false;
