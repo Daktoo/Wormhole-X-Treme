@@ -104,8 +104,8 @@ public class WormholeXTremePlayerListener implements Listener {
                     }
 
                     if (ConfigManager.isEconomyEnabled() && EconomyManager.isEconomyEnabled()) {
-                        StargateShape shape = newGate.getGateShape();
-                        String shapeName = shape != null ? shape.getShapeName() : null;
+                        StargateShape economyShape = newGate.getGateShape();
+                        String shapeName = economyShape != null ? economyShape.getShapeName() : null;
 
                         WXTLogger.prettyLog(Level.FINE, false,
                                 "[Economy] sign-dial auto-complete economy check: shape=" + shapeName
