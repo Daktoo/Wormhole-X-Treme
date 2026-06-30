@@ -130,6 +130,7 @@ public class Wormhole implements CommandExecutor, TabCompleter {
                             String sn = pgGate.getGateShape().getShapeName().toLowerCase();
                             if (sn.equals("horizontal") || sn.equals("horizontalsigndial")) {
                                 portalOpts = new ArrayList<>(PORTAL_MATS);
+                                portalOpts.remove("NETHER_PORTAL");
                                 portalOpts.add("END_PORTAL");
                             }
                         }
@@ -539,14 +540,16 @@ public class Wormhole implements CommandExecutor, TabCompleter {
                     (stargate.getGateShape().getShapeName().equalsIgnoreCase("Horizontal") ||
                      stargate.getGateShape().getShapeName().equalsIgnoreCase("HorizontalSignDial"));
             String validMats = isHorizontal
-                    ? "WATER, LAVA, AIR, NETHER_PORTAL, END_PORTAL"
+                    ? "WATER, LAVA, AIR, END_PORTAL"
                     : "WATER, LAVA, AIR, NETHER_PORTAL";
             if (args.length == 3) {
                 Material m = null;
                 try { m = Material.valueOf(args[2].trim().toUpperCase()); } catch (Exception e) { WXTLogger.prettyLog(Level.FINE, false, "Caught Exception on portal material" + e.getMessage()); }
-                boolean valid = m != null && (m == Material.LAVA || m == Material.WATER || m == Material.AIR || m == Material.NETHER_PORTAL);
-                if (!valid && isHorizontal && m == Material.END_PORTAL) {
-                    valid = true;
+                boolean valid;
+                if (isHorizontal) {
+                    valid = m != null && (m == Material.LAVA || m == Material.WATER || m == Material.AIR || m == Material.END_PORTAL);
+                } else {
+                    valid = m != null && (m == Material.LAVA || m == Material.WATER || m == Material.AIR || m == Material.NETHER_PORTAL);
                 }
                 if (valid) {
                     stargate.setGateCustomPortalMaterial(m);
@@ -556,7 +559,9 @@ public class Wormhole implements CommandExecutor, TabCompleter {
                 }
                 sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid Portal Material: " + gateMaterial);
                 sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid materials are: " + validMats);
-                if (!isHorizontal && args[2].trim().equalsIgnoreCase("END_PORTAL")) {
+                if (isHorizontal && m == Material.NETHER_PORTAL) {
+                    sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "NETHER_PORTAL is not available for Horizontal and HorizontalSignDial gate shapes. Use END_PORTAL instead.");
+                } else if (!isHorizontal && m == Material.END_PORTAL) {
                     sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "END_PORTAL is only available for Horizontal and HorizontalSignDial gate shapes.");
                 }
                 return true;

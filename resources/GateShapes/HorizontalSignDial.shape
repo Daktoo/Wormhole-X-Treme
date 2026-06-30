@@ -100,7 +100,7 @@ LIGHT_TICKS = 3;
 
 # None of the follow materials are required, they will default if not set.
 # Portal material the material the [P] blocks will be when gate is active.
-# Suggested values are as follows: WATER, LAVA, NETHER_PORTAL, END_PORTAL, and AIR
+# Suggested values are as follows: WATER, LAVA, END_PORTAL, and AIR
 PORTAL_MATERIAL=WATER
 
 # Iris material is the material the [P] block become when iris is active
