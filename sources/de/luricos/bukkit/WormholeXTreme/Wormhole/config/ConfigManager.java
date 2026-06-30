@@ -31,6 +31,7 @@ public class ConfigManager {
         SHOW_GATE_WELCOME_MESSAGE,
         USE_EVENT_OR_TP_TRANSPORT,
         WORMHOLE_KICKBACK_BLOCK_COUNT,
+        WORMHOLE_MAX_GATE_NAME_LENGTH,
         PERMISSIONS_BACKEND,
         ECONOMY_ENABLED
     }
@@ -168,6 +169,17 @@ public class ConfigManager {
 
     public static void setWormholeKickbackBlockCount(int wkbCount) {
         setConfigValue(ConfigKeys.WORMHOLE_KICKBACK_BLOCK_COUNT, Integer.valueOf(wkbCount));
+    }
+
+    public static int getWormholeMaxGateNameLength() {
+        if (isConfigurationKey(ConfigKeys.WORMHOLE_MAX_GATE_NAME_LENGTH)) {
+            return getSetting(ConfigKeys.WORMHOLE_MAX_GATE_NAME_LENGTH).getIntValue();
+        }
+        return 50;
+    }
+
+    public static void setWormholeMaxGateNameLength(int maxLength) {
+        setConfigValue(ConfigKeys.WORMHOLE_MAX_GATE_NAME_LENGTH, Integer.valueOf(maxLength));
     }
 
     public static boolean getPermissionsSupportDisable() {

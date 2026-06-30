@@ -18,7 +18,8 @@ public class Complete implements CommandExecutor {
 
     private static boolean doComplete(Player player, String[] args) {
         String name = args[0].trim().replace("\n", "").replace("\r", "");
-        if (name.length() <= 50) {
+        int maxGateNameLength = ConfigManager.getWormholeMaxGateNameLength();
+        if (name.length() <= maxGateNameLength) {
             String idc = "";
             String network = "Public";
             for (int i = 1; i < args.length; i++) {
@@ -66,7 +67,7 @@ public class Complete implements CommandExecutor {
             player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
             return true;
         }
-        player.sendMessage(ConfigManager.MessageStrings.constructNameTooLong.toString() + "\"" + name + "\" (max 50 characters)");
+        player.sendMessage(ConfigManager.MessageStrings.constructNameTooLong.toString() + "\"" + name + "\" (max " + maxGateNameLength + " characters)");
         return true;
     }
 
