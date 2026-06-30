@@ -1,6 +1,7 @@
 package de.luricos.bukkit.WormholeXTreme.Wormhole.listeners;
 
 import de.luricos.bukkit.WormholeXTreme.Wormhole.config.ConfigManager;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.economy.EconomyManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.StargateHelper;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.Stargate;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateDBManager;
@@ -100,6 +101,22 @@ public class WormholeXTremePlayerListener implements Listener {
                         player.sendMessage(ConfigManager.MessageStrings.constructNameInvalid.toString() + "\"\"");
                         return true;
                     }
+
+                    if (ConfigManager.isEconomyEnabled() && EconomyManager.isEconomyEnabled()) {
+                        StargateShape shape = newGate.getGateShape();
+                        String shapeName = shape != null ? shape.getShapeName() : null;
+
+                        WXTLogger.prettyLog(Level.FINE, false,
+                                "[Economy] sign-dial auto-complete economy check: shape=" + shapeName
+                                + " player=" + player.getName());
+
+                        if (shapeName != null && !EconomyManager.canAffordAndCharge(player, shapeName)) {
+                            newGate.resetTeleportSign();
+                            StargateManager.removeIncompleteStargate(player);
+                            return true;
+                        }
+                    }
+
                     boolean success = StargateManager.completeStargate(player, newGate);
                     if (success) {
                         player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
