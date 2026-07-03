@@ -1168,7 +1168,7 @@ public class Stargate {
                     setGateDialSignTarget(null);
                     return;
                 }
-                int currentIndex = 0;
+                int currentIndex = -1;
                 Stargate currentTarget = getGateDialSignTarget();
                 if (currentTarget != null) {
                     for (int i = 0; i < signGates.size(); i++) {
@@ -1177,7 +1177,8 @@ public class Stargate {
                             break;
                         }
                     }
-                } else {
+                }
+                if (currentIndex == -1) {
                     int savedIndex = getGateDialSignIndex();
                     if (savedIndex >= 0 && savedIndex < getGateNetwork().getNetworkSignGateList().size()) {
                         Stargate savedGate = getGateNetwork().getNetworkSignGateList().get(savedIndex);
@@ -1189,9 +1190,14 @@ public class Stargate {
                         }
                     }
                 }
-                int nextIndex = ((currentIndex + direction) % signGates.size() + signGates.size()) % signGates.size();
-                if (signGates.size() > 1 && nextIndex == currentIndex) {
-                    nextIndex = (nextIndex + direction + signGates.size()) % signGates.size();
+                int nextIndex;
+                if (currentIndex == -1) {
+                    nextIndex = direction == 1 ? 0 : signGates.size() - 1;
+                } else {
+                    nextIndex = ((currentIndex + direction) % signGates.size() + signGates.size()) % signGates.size();
+                    if (signGates.size() > 1 && nextIndex == currentIndex) {
+                        nextIndex = ((nextIndex + direction) % signGates.size() + signGates.size()) % signGates.size();
+                    }
                 }
                 currentTarget = signGates.get(nextIndex);
                 setGateDialSignTarget(currentTarget);
