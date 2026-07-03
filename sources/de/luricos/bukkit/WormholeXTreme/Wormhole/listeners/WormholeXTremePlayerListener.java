@@ -170,10 +170,10 @@ public class WormholeXTremePlayerListener implements Listener {
                 player.sendMessage(String.format(ConfigManager.MessageStrings.gateDeactivated.toString(), currentGate.getGateName() + " "));
                 return wormholePlayer;
             }
-            if (currentGate.isGateLightsActive() && !currentGate.isGateActive() && currentGate.getLastUsedBy() != wormholePlayer.getName()) {
+            if (currentGate.isGateLightsActive() && !currentGate.isGateActive() && !wormholePlayer.getName().equals(currentGate.getLastUsedBy())) {
                 player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Gate has been activated by '" + currentGate.getLastUsedBy() + "' already.");
                 wormholePlayer.getProperties().setHasReceivedWasActivatedOther(true);
-            } else if (currentGate.isGateLightsActive() && !currentGate.isGateActive() && currentGate.getLastUsedBy().equals(wormholePlayer.getName())) {
+            } else if (currentGate.isGateLightsActive() && !currentGate.isGateActive() && wormholePlayer.getName().equals(currentGate.getLastUsedBy())) {
                 currentGate.stopActivationTimer();
                 currentGate.setGateActive(false);
                 currentGate.toggleDialLeverState(false);
@@ -184,10 +184,12 @@ public class WormholeXTremePlayerListener implements Listener {
             } else {
                 wormholePlayer.getProperties().setHasReceivedRemoteActiveMessage(true);
                 Stargate sourceGate = StargateManager.getStargate(currentGate.getSourceGateName());
-                if (sourceGate != null) {
+                if (sourceGate != null && sourceGate.getLastUsedBy() != null) {
                     player.sendMessage(String.format(ConfigManager.MessageStrings.gateRemoteActive.toString(), currentGate.getGateName() + " ", " by " + sourceGate.getLastUsedBy()));
-                    player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Detected Wormhole source " + currentGate.getSourceGateName());
+                } else {
+                    player.sendMessage(String.format(ConfigManager.MessageStrings.gateRemoteActive.toString(), currentGate.getGateName() + " ", ""));
                 }
+                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Detected Wormhole source " + currentGate.getSourceGateName());
             }
             return wormholePlayer;
         }
@@ -205,8 +207,17 @@ public class WormholeXTremePlayerListener implements Listener {
                         return wormholePlayer;
                     }
                     Stargate targetGate = StargateManager.getStargate(currentGate.getGateDialSignTarget().getGateName());
-                    player.sendMessage(String.format(ConfigManager.MessageStrings.gateRemoteActive.toString(), targetGate.getGateName() + " ", " by " + StargateManager.getStargate(targetGate.getSourceGateName()).getLastUsedBy()));
-                    player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Detected Wormhole source " + targetGate.getSourceGateName());
+                    if (targetGate != null) {
+                        Stargate sourceGate = StargateManager.getStargate(targetGate.getSourceGateName());
+                        if (sourceGate != null && sourceGate.getLastUsedBy() != null) {
+                            player.sendMessage(String.format(ConfigManager.MessageStrings.gateRemoteActive.toString(), targetGate.getGateName() + " ", " by " + sourceGate.getLastUsedBy()));
+                        } else {
+                            player.sendMessage(String.format(ConfigManager.MessageStrings.gateRemoteActive.toString(), targetGate.getGateName() + " ", ""));
+                        }
+                        player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Detected Wormhole source " + targetGate.getSourceGateName());
+                    } else {
+                        player.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString());
+                    }
                     wormholePlayer.getProperties().setHasReceivedRemoteActiveMessage(true);
                     return wormholePlayer;
                 }

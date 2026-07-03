@@ -1153,55 +1153,42 @@ public class Stargate {
                     setGateDialSignTarget(null);
                     return;
                 }
-                if (getGateDialSignIndex() == -1) {
-                    setGateDialSignIndex(0);
-                }
+                int signCount = getGateNetwork().getNetworkSignGateList().size();
                 int direction = 1;
                 if (eventAction != null && eventAction.equals(Action.RIGHT_CLICK_BLOCK)) {
                     direction = -1;
                 }
-                getGateSignOrder().clear();
-                int orderIndex = 1;
-                if (getGateDialSignIndex() > getGateNetwork().getNetworkSignGateList().size()) {
-                    setGateDialSignIndex(0);
+                ArrayList<Stargate> signGates = new ArrayList<>(getGateNetwork().getNetworkSignGateList());
+                signGates.removeIf(gate -> gate.getGateName().equals(getGateName()));
+                if (signGates.isEmpty()) {
+                    getGateDialSign().setLine(1, "");
+                    getGateDialSign().setLine(2, ChatColor.DARK_RED + "No Other Gates" + ChatColor.BLACK);
+                    getGateDialSign().setLine(3, "");
+                    getGateDialSign().update();
+                    setGateDialSignTarget(null);
+                    return;
                 }
-                for (int i = 0; i < 4; i++) {
-                    if (getGateDialSignIndex() == getGateNetwork().getNetworkSignGateList().size()) {
-                        setGateDialSignIndex(0);
-                    }
-                    if (getGateDialSignIndex() < 0) {
-                        setGateDialSignIndex(getGateNetwork().getNetworkSignGateList().size() - 1);
-                    }
-                    if (getGateNetwork().getNetworkSignGateList().get(getGateDialSignIndex()).getGateName().equals(getGateName())) {
-                        setGateDialSignIndex(getGateDialSignIndex() + direction);
-                        if (getGateDialSignIndex() == getGateNetwork().getNetworkSignGateList().size()) {
-                            setGateDialSignIndex(0);
+                int currentIndex = 0;
+                Stargate currentTarget = getGateDialSignTarget();
+                if (currentTarget != null) {
+                    for (int i = 0; i < signGates.size(); i++) {
+                        if (signGates.get(i).getGateId() == currentTarget.getGateId()) {
+                            currentIndex = i;
+                            break;
                         }
                     }
-                    if (getGateDialSignIndex() >= 0) {
-                        getGateSignOrder().put(Integer.valueOf(orderIndex), getGateNetwork().getNetworkSignGateList().get(getGateDialSignIndex()));
-                        orderIndex++;
-                        setGateDialSignIndex(getGateDialSignIndex() + direction);
-                    }
                 }
+                currentIndex = ((currentIndex + direction) % signGates.size() + signGates.size()) % signGates.size();
+                currentTarget = signGates.get(currentIndex);
+                setGateDialSignTarget(currentTarget);
+                setGateDialSignIndex(getGateNetwork().getNetworkSignGateList().indexOf(currentTarget));
                 String line1 = "";
                 String line3 = "";
-                if (getGateNetwork().getNetworkSignGateList().size() >= 2) {
-                    line2 = lineMarkerS + getGateSignOrder().get(2).getGateName() + lineMarkerE;
-                } else {
-                    line2 = lineMarkerS + getGateSignOrder().get(1).getGateName() + lineMarkerE;
+                if (signGates.size() > 1) {
+                    line1 = signGates.get((currentIndex - 1 + signGates.size()) % signGates.size()).getGateName();
+                    line3 = signGates.get((currentIndex + 1) % signGates.size()).getGateName();
                 }
-                if (getGateNetwork().getNetworkSignGateList().size() > 2) {
-                    line1 = getGateSignOrder().get(1).getGateName();
-                    line3 = getGateSignOrder().get(3).getGateName();
-                }
-                setGateDialSignTarget(getGateSignOrder().get(2));
-                setGateDialSignIndex(getGateNetwork().getNetworkSignGateList().indexOf(getGateSignOrder().get(2)));
-                if (direction == -1) {
-                    String lineTemp = line1;
-                    line1 = line3;
-                    line3 = lineTemp;
-                }
+                line2 = lineMarkerS + currentTarget.getGateName() + lineMarkerE;
                 getGateDialSign().setLine(1, line1);
                 getGateDialSign().setLine(2, line2);
                 getGateDialSign().setLine(3, line3);
