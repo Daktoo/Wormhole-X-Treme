@@ -1177,16 +1177,30 @@ public class Stargate {
                             break;
                         }
                     }
+                } else {
+                    int savedIndex = getGateDialSignIndex();
+                    if (savedIndex >= 0 && savedIndex < getGateNetwork().getNetworkSignGateList().size()) {
+                        Stargate savedGate = getGateNetwork().getNetworkSignGateList().get(savedIndex);
+                        for (int i = 0; i < signGates.size(); i++) {
+                            if (signGates.get(i).getGateId() == savedGate.getGateId()) {
+                                currentIndex = i;
+                                break;
+                            }
+                        }
+                    }
                 }
-                currentIndex = ((currentIndex + direction) % signGates.size() + signGates.size()) % signGates.size();
-                currentTarget = signGates.get(currentIndex);
+                int nextIndex = ((currentIndex + direction) % signGates.size() + signGates.size()) % signGates.size();
+                if (signGates.size() > 1 && nextIndex == currentIndex) {
+                    nextIndex = (nextIndex + direction + signGates.size()) % signGates.size();
+                }
+                currentTarget = signGates.get(nextIndex);
                 setGateDialSignTarget(currentTarget);
                 setGateDialSignIndex(getGateNetwork().getNetworkSignGateList().indexOf(currentTarget));
                 String line1 = "";
                 String line3 = "";
                 if (signGates.size() > 1) {
-                    line1 = signGates.get((currentIndex - 1 + signGates.size()) % signGates.size()).getGateName();
-                    line3 = signGates.get((currentIndex + 1) % signGates.size()).getGateName();
+                    line1 = signGates.get((nextIndex - 1 + signGates.size()) % signGates.size()).getGateName();
+                    line3 = signGates.get((nextIndex + 1) % signGates.size()).getGateName();
                 }
                 line2 = lineMarkerS + currentTarget.getGateName() + lineMarkerE;
                 getGateDialSign().setLine(1, line1);
@@ -1292,12 +1306,11 @@ public class Stargate {
     public boolean tryClickTeleportSign(Block clickedBlock, Action eventAction, String triggeredByPlayer) {
         if (getGateDialSign() == null && getGateDialSignBlock() != null) {
             if (org.bukkit.Tag.WALL_SIGNS.isTagged(getGateDialSignBlock().getType())) {
-                setGateDialSignIndex(-1);
                 if (eventAction == null) {
                     getGateDialSignBlock().setType(Material.AIR);
                 }
                 WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(this, StargateUpdateRunnable.ActionToTake.DIAL_SIGN_CLICK, eventAction));
-                return false;
+                return true;
             }
             return false;
         }
