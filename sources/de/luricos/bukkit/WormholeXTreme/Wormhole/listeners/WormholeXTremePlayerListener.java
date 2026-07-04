@@ -457,6 +457,9 @@ public class WormholeXTremePlayerListener implements Listener {
             WXTLogger.prettyLog(Level.FINE, false, "InteractEvent was canceled");
             return;
         }
+        if (event.getHand() == org.bukkit.inventory.EquipmentSlot.OFF_HAND) {
+            return;
+        }
         if (event.getClickedBlock() != null) {
             WXTLogger.prettyLog(Level.FINE, false, "Caught Player: \"" + event.getPlayer().getName() + "\" Event Name: \"" + event.getEventName() + "\" Action Type: \"" + event.getAction().toString() + "\" Event Block Type: \"" + event.getClickedBlock().getType().toString() + "\" Event World: \"" + event.getClickedBlock().getWorld().toString() + "\" Event Block: " + event.getClickedBlock().toString() + "\"");
             if (handlePlayerInteractEvent(event)) {
