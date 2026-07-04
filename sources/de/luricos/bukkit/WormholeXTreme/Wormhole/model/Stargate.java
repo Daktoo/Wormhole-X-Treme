@@ -36,6 +36,7 @@ public class Stargate {
     private Location gateMinecartTeleportLocation;
     private Block gateDialLeverBlock;
     private Block gateIrisLeverBlock;
+    private boolean gateDialSwitchUsesButton = false;
     private Block gateDialSignBlock;
     private Block gateRedstoneDialActivationBlock;
     private Block gateRedstoneSignActivationBlock;
@@ -451,6 +452,10 @@ public class Stargate {
         return this.gateDialLeverBlock;
     }
 
+    public boolean isGateDialSwitchUsesButton() {
+        return this.gateDialSwitchUsesButton;
+    }
+
     private String fitSignLine(String text, String prefix, String suffix) {
         if (text == null) {
             text = "";
@@ -769,6 +774,7 @@ public class Stargate {
 
     public void setGateDialLeverBlock(Block gateDialLeverBlock) {
         this.gateDialLeverBlock = gateDialLeverBlock;
+        this.gateDialSwitchUsesButton = gateDialLeverBlock != null && isButtonMaterial(gateDialLeverBlock.getType());
     }
 
     public synchronized void setGateDialSign(Sign gateDialSign) {
@@ -789,6 +795,10 @@ public class Stargate {
 
     public void setGateFacing(BlockFace gateFacing) {
         this.gateFacing = gateFacing;
+    }
+
+    private boolean isButtonMaterial(Material material) {
+        return material != null && material.name().endsWith("_BUTTON");
     }
 
     void setGateId(long gateId) {
@@ -1180,12 +1190,22 @@ public class Stargate {
                 }
                 if (currentIndex == -1) {
                     int savedIndex = getGateDialSignIndex();
-                    if (savedIndex >= 0 && savedIndex < getGateNetwork().getNetworkSignGateList().size()) {
-                        Stargate savedGate = getGateNetwork().getNetworkSignGateList().get(savedIndex);
-                        for (int i = 0; i < signGates.size(); i++) {
-                            if (signGates.get(i).getGateId() == savedGate.getGateId()) {
-                                currentIndex = i;
-                                break;
+                    if (savedIndex >= 0 && savedIndex < signGates.size()) {
+                        currentIndex = savedIndex;
+                    } else if (savedIndex >= 0 && savedIndex < getGateNetwork().getNetworkSignGateList().size()) {
+                        int filteredIndex = 0;
+                        for (Stargate candidate : getGateNetwork().getNetworkSignGateList()) {
+                            if (candidate != null && candidate.getGateName() != null && !candidate.getGateName().equals(getGateName())) {
+                                if (filteredIndex == savedIndex) {
+                                    for (int i = 0; i < signGates.size(); i++) {
+                                        if (signGates.get(i).getGateId() == candidate.getGateId()) {
+                                            currentIndex = i;
+                                            break;
+                                        }
+                                    }
+                                    break;
+                                }
+                                filteredIndex++;
                             }
                         }
                     }
@@ -1195,13 +1215,10 @@ public class Stargate {
                     nextIndex = direction == 1 ? 0 : signGates.size() - 1;
                 } else {
                     nextIndex = ((currentIndex + direction) % signGates.size() + signGates.size()) % signGates.size();
-                    if (signGates.size() > 1 && nextIndex == currentIndex) {
-                        nextIndex = ((nextIndex + direction) % signGates.size() + signGates.size()) % signGates.size();
-                    }
                 }
                 currentTarget = signGates.get(nextIndex);
                 setGateDialSignTarget(currentTarget);
-                setGateDialSignIndex(getGateNetwork().getNetworkSignGateList().indexOf(currentTarget));
+                setGateDialSignIndex(nextIndex);
                 String line1 = "";
                 String line3 = "";
                 if (signGates.size() > 1) {
@@ -1246,26 +1263,40 @@ public class Stargate {
                 WorldUtils.scheduleChunkLoad(getGateDialLeverBlock());
             }
             Material material = getGateDialLeverBlock().getType();
+            boolean useButton = isButtonMaterial(material) || this.gateDialSwitchUsesButton;
             if (regenerate) {
-                getGateDialLeverBlock().setType(Material.LEVER); { org.bukkit.block.data.type.Switch _sw4 = (org.bukkit.block.data.type.Switch) getGateDialLeverBlock().getBlockData(); _sw4.setFacing(getGateFacing()); _sw4.setFace(org.bukkit.block.data.type.Switch.Face.WALL); getGateDialLeverBlock().setBlockData(_sw4); }
+                if (useButton) {
+                    getGateDialLeverBlock().setType(Material.STONE_BUTTON);
+                    if (getGateDialLeverBlock().getBlockData() instanceof org.bukkit.block.data.type.Button) {
+                        org.bukkit.block.data.type.Button button = (org.bukkit.block.data.type.Button) getGateDialLeverBlock().getBlockData();
+                        button.setFacing(getGateFacing());
+                        button.setPowered(false);
+                        getGateDialLeverBlock().setBlockData(button);
+                    }
+                } else {
+                    getGateDialLeverBlock().setType(Material.LEVER);
+                    if (getGateDialLeverBlock().getBlockData() instanceof org.bukkit.block.data.type.Switch) {
+                        org.bukkit.block.data.type.Switch switchData = (org.bukkit.block.data.type.Switch) getGateDialLeverBlock().getBlockData();
+                        switchData.setFacing(getGateFacing());
+                        switchData.setFace(org.bukkit.block.data.type.Switch.Face.WALL);
+                        getGateDialLeverBlock().setBlockData(switchData);
+                    }
+                }
                 material = getGateDialLeverBlock().getType();
             }
-            byte leverState = getGateDialLeverBlock().getData();
-            switch (AnonymousClass1.$SwitchMap$org$bukkit$Material[material.ordinal()]) {
-                case 1:
-                    getGateDialLeverBlock().setType(Material.LEVER);
-                    { if (getGateDialLeverBlock().getBlockData() instanceof org.bukkit.block.data.type.Switch) { org.bukkit.block.data.type.Switch _sw5 = (org.bukkit.block.data.type.Switch) getGateDialLeverBlock().getBlockData(); _sw5.setPowered(false); getGateDialLeverBlock().setBlockData(_sw5); } }
-                    WXTLogger.prettyLog(Level.FINE, false, "Automaticially replaced Button on gate \"" + getGateName() + "\" with Lever.");
-                    { if (getGateDialLeverBlock().getBlockData() instanceof org.bukkit.block.data.type.Switch) { org.bukkit.block.data.type.Switch _sw6 = (org.bukkit.block.data.type.Switch) getGateDialLeverBlock().getBlockData(); _sw6.setPowered(isGateActive()); getGateDialLeverBlock().setBlockData(_sw6); } }
-                    break;
-                case 2:
-                    { if (getGateDialLeverBlock().getBlockData() instanceof org.bukkit.block.data.type.Switch) { org.bukkit.block.data.type.Switch _sw7 = (org.bukkit.block.data.type.Switch) getGateDialLeverBlock().getBlockData(); _sw7.setPowered(isGateActive()); getGateDialLeverBlock().setBlockData(_sw7); } }
-                    break;
+            if (isButtonMaterial(material) && getGateDialLeverBlock().getBlockData() instanceof org.bukkit.block.data.type.Button) {
+                org.bukkit.block.data.type.Button button = (org.bukkit.block.data.type.Button) getGateDialLeverBlock().getBlockData();
+                button.setPowered(isGateActive());
+                getGateDialLeverBlock().setBlockData(button);
+            } else if (material == Material.LEVER && getGateDialLeverBlock().getBlockData() instanceof org.bukkit.block.data.type.Switch) {
+                org.bukkit.block.data.type.Switch switchData = (org.bukkit.block.data.type.Switch) getGateDialLeverBlock().getBlockData();
+                switchData.setPowered(isGateActive());
+                getGateDialLeverBlock().setBlockData(switchData);
             }
             if (!isGateActive()) {
                 WorldUtils.scheduleChunkUnload(getGateDialLeverBlock());
             }
-            WXTLogger.prettyLog(Level.FINE, false, "Dial Button Lever Gate: \"" + getGateName() + "\" Material: \"" + material.toString() + "\" State: \"" + ((int) leverState) + "\"");
+            WXTLogger.prettyLog(Level.FINE, false, "Dial Button Lever Gate: \"" + getGateName() + "\" Material: \"" + material.toString() + "\" State: \"" + (isGateActive() ? 1 : 0) + "\"");
         }
     }
 

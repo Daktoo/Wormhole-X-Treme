@@ -245,7 +245,7 @@ public class WormholeXTremePlayerListener implements Listener {
         Block clickedBlock = event.getClickedBlock();
         Action clickedBlockAction = event.getAction();
         Player player = event.getPlayer();
-        if (clickedBlock != null && (clickedBlock.getType().equals(Material.STONE_BUTTON) || clickedBlock.getType().equals(Material.LEVER))) {
+        if (clickedBlock != null && (clickedBlock.getType().name().endsWith("_BUTTON") || clickedBlock.getType().equals(Material.LEVER))) {
             if (clickedBlock.getType().equals(Material.LEVER) && !WXPermissions.checkPermission(player, WXPermissions.PermissionType.USE)) {
                 return false;
             }
