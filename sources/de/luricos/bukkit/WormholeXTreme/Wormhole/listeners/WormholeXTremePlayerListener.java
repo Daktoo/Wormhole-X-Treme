@@ -94,9 +94,13 @@ public class WormholeXTremePlayerListener implements Listener {
             return true;
         }
         if (direction == null) {
-            Button directionButton = new Button(Material.STONE_BUTTON);
-            directionButton.setData(clickedBlock.getData());
-            direction = directionButton.getFacing();
+            if (clickedBlock != null && clickedBlock.getBlockData() instanceof org.bukkit.block.data.type.Switch) {
+                org.bukkit.block.data.type.Switch switchData = (org.bukkit.block.data.type.Switch) clickedBlock.getBlockData();
+                direction = switchData.getFacing();
+            } else if (clickedBlock != null && clickedBlock.getBlockData() instanceof org.bukkit.block.data.type.Directional) {
+                org.bukkit.block.data.type.Directional directionalData = (org.bukkit.block.data.type.Directional) clickedBlock.getBlockData();
+                direction = directionalData.getFacing();
+            }
             if (direction == null) {
                 return false;
             }
@@ -121,7 +125,6 @@ public class WormholeXTremePlayerListener implements Listener {
                     if (success) {
                         player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
                         newGate.getGateDialSign().setLine(0, fitSignLine(newGate.getGateName(), "-", "-"));
-                        newGate.getGateDialSign().setData(newGate.getGateDialSign().getData());
                         newGate.getGateDialSign().update();
                         return true;
                     }
