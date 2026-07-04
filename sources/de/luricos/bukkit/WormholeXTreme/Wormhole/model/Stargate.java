@@ -1146,9 +1146,7 @@ public class Stargate {
         synchronized (getGateNetwork().getNetworkGateLock()) {
             getGateDialSignBlock().setType(Material.OAK_WALL_SIGN); { org.bukkit.block.data.type.WallSign _wsd3 = (org.bukkit.block.data.type.WallSign) getGateDialSignBlock().getBlockData(); _wsd3.setFacing(getGateFacing()); getGateDialSignBlock().setBlockData(_wsd3); }
             try {
-                if (getGateDialSign() == null) {
-                    setGateDialSign((Sign) getGateDialSignBlock().getState());
-                }
+                setGateDialSign((Sign) getGateDialSignBlock().getState());
                 if (!getGateDialSign().getType().equals(Material.OAK_WALL_SIGN)) {
                     throw new WormholeDialSignException("Expected WALL_SIGN. Found '" + getGateDialSign().getType().name() + "' for gate '" + getGateName() + "' in world '" + getWorld().getName() + "'.");
                 }
