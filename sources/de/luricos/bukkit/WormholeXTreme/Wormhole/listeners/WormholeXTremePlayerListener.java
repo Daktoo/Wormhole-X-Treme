@@ -94,12 +94,15 @@ public class WormholeXTremePlayerListener implements Listener {
             return true;
         }
         if (direction == null) {
-            if (clickedBlock != null && clickedBlock.getBlockData() instanceof org.bukkit.block.data.type.Switch) {
-                org.bukkit.block.data.type.Switch switchData = (org.bukkit.block.data.type.Switch) clickedBlock.getBlockData();
-                direction = switchData.getFacing();
-            } else if (clickedBlock != null && clickedBlock.getBlockData() instanceof org.bukkit.block.data.type.Directional) {
-                org.bukkit.block.data.type.Directional directionalData = (org.bukkit.block.data.type.Directional) clickedBlock.getBlockData();
-                direction = directionalData.getFacing();
+            if (clickedBlock != null) {
+                org.bukkit.material.MaterialData materialData = clickedBlock.getState().getData();
+                if (materialData instanceof org.bukkit.material.Button) {
+                    org.bukkit.material.Button buttonData = (org.bukkit.material.Button) materialData;
+                    direction = buttonData.getFacing();
+                } else if (materialData instanceof org.bukkit.material.Lever) {
+                    org.bukkit.material.Lever leverData = (org.bukkit.material.Lever) materialData;
+                    direction = leverData.getFacing();
+                }
             }
             if (direction == null) {
                 return false;
