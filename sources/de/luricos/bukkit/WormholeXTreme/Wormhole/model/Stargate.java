@@ -1203,6 +1203,10 @@ public class Stargate {
                 } else {
                     nextIndex = ((currentIndex + direction) % signGates.size() + signGates.size()) % signGates.size();
                 }
+                WXTLogger.prettyLog(Level.FINE, false, "DIAL DEBUG gate='" + getGateName() + "' eventAction=" + eventAction
+                        + " direction=" + direction + " signGates=" + signGates.stream().map(Stargate::getGateName).collect(java.util.stream.Collectors.joining(","))
+                        + " savedIndex=" + getGateDialSignIndex() + " currentTargetName=" + (currentTarget != null ? currentTarget.getGateName() : "null")
+                        + " currentIndex=" + currentIndex + " nextIndex=" + nextIndex);
                 currentTarget = signGates.get(nextIndex);
                 setGateDialSignTarget(currentTarget);
                 setGateDialSignIndex(nextIndex);
