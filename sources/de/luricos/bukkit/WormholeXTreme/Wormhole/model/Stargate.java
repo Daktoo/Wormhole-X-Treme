@@ -1168,8 +1168,12 @@ public class Stargate {
                 if (eventAction != null && eventAction.equals(Action.RIGHT_CLICK_BLOCK)) {
                     direction = -1;
                 }
-                ArrayList<Stargate> signGates = new ArrayList<>(getGateNetwork().getNetworkSignGateList());
-                signGates.removeIf(gate -> gate.getGateName().equals(getGateName()));
+                ArrayList<Stargate> signGates = new ArrayList<>();
+                for (Stargate gate : getGateNetwork().getNetworkSignGateList()) {
+                    if (gate != null && gate.getGateName() != null && !gate.getGateName().equals(getGateName())) {
+                        signGates.add(gate);
+                    }
+                }
                 if (signGates.isEmpty()) {
                     getGateDialSign().setLine(1, "");
                     getGateDialSign().setLine(2, ChatColor.DARK_RED + "No Other Gates" + ChatColor.BLACK);
@@ -1182,7 +1186,8 @@ public class Stargate {
                 Stargate currentTarget = getGateDialSignTarget();
                 if (currentTarget != null) {
                     for (int i = 0; i < signGates.size(); i++) {
-                        if (signGates.get(i).getGateId() == currentTarget.getGateId()) {
+                        if (signGates.get(i).getGateId() == currentTarget.getGateId()
+                                || (signGates.get(i).getGateName() != null && signGates.get(i).getGateName().equals(currentTarget.getGateName()))) {
                             currentIndex = i;
                             break;
                         }
@@ -1192,22 +1197,6 @@ public class Stargate {
                     int savedIndex = getGateDialSignIndex();
                     if (savedIndex >= 0 && savedIndex < signGates.size()) {
                         currentIndex = savedIndex;
-                    } else if (savedIndex >= 0 && savedIndex < getGateNetwork().getNetworkSignGateList().size()) {
-                        int filteredIndex = 0;
-                        for (Stargate candidate : getGateNetwork().getNetworkSignGateList()) {
-                            if (candidate != null && candidate.getGateName() != null && !candidate.getGateName().equals(getGateName())) {
-                                if (filteredIndex == savedIndex) {
-                                    for (int i = 0; i < signGates.size(); i++) {
-                                        if (signGates.get(i).getGateId() == candidate.getGateId()) {
-                                            currentIndex = i;
-                                            break;
-                                        }
-                                    }
-                                    break;
-                                }
-                                filteredIndex++;
-                            }
-                        }
                     }
                 }
                 int nextIndex;
