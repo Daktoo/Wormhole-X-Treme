@@ -1266,28 +1266,36 @@ public class Stargate {
             boolean useButton = isButtonMaterial(material) || this.gateDialSwitchUsesButton;
             if (regenerate) {
                 if (useButton) {
-                    org.bukkit.material.Button button = new org.bukkit.material.Button(Material.STONE_BUTTON);
-                    button.setFacingDirection(getGateFacing());
-                    button.setPowered(false);
                     getGateDialLeverBlock().setType(Material.STONE_BUTTON);
-                    getGateDialLeverBlock().setData(button.getData());
+                    if (getGateDialLeverBlock().getBlockData() instanceof org.bukkit.block.data.type.Switch) {
+                        org.bukkit.block.data.type.Switch switchData = (org.bukkit.block.data.type.Switch) getGateDialLeverBlock().getBlockData();
+                        switchData.setFacing(getGateFacing());
+                        switchData.setFace(org.bukkit.block.data.type.Switch.Face.WALL);
+                        getGateDialLeverBlock().setBlockData(switchData);
+                    }
                 } else {
-                    org.bukkit.material.Lever lever = new org.bukkit.material.Lever(Material.LEVER);
-                    lever.setFacingDirection(getGateFacing());
-                    lever.setPowered(false);
                     getGateDialLeverBlock().setType(Material.LEVER);
-                    getGateDialLeverBlock().setData(lever.getData());
+                    if (getGateDialLeverBlock().getBlockData() instanceof org.bukkit.block.data.type.Switch) {
+                        org.bukkit.block.data.type.Switch switchData = (org.bukkit.block.data.type.Switch) getGateDialLeverBlock().getBlockData();
+                        switchData.setFacing(getGateFacing());
+                        switchData.setFace(org.bukkit.block.data.type.Switch.Face.WALL);
+                        getGateDialLeverBlock().setBlockData(switchData);
+                    }
                 }
                 material = getGateDialLeverBlock().getType();
             }
             if (isButtonMaterial(material)) {
-                org.bukkit.material.Button button = new org.bukkit.material.Button(material);
-                button.setPowered(isGateActive());
-                getGateDialLeverBlock().setData(button.getData());
+                if (getGateDialLeverBlock().getBlockData() instanceof org.bukkit.block.data.type.Switch) {
+                    org.bukkit.block.data.type.Switch switchData = (org.bukkit.block.data.type.Switch) getGateDialLeverBlock().getBlockData();
+                    switchData.setPowered(isGateActive());
+                    getGateDialLeverBlock().setBlockData(switchData);
+                }
             } else if (material == Material.LEVER) {
-                org.bukkit.material.Lever lever = new org.bukkit.material.Lever(material);
-                lever.setPowered(isGateActive());
-                getGateDialLeverBlock().setData(lever.getData());
+                if (getGateDialLeverBlock().getBlockData() instanceof org.bukkit.block.data.type.Switch) {
+                    org.bukkit.block.data.type.Switch switchData = (org.bukkit.block.data.type.Switch) getGateDialLeverBlock().getBlockData();
+                    switchData.setPowered(isGateActive());
+                    getGateDialLeverBlock().setBlockData(switchData);
+                }
             }
             if (!isGateActive()) {
                 WorldUtils.scheduleChunkUnload(getGateDialLeverBlock());
