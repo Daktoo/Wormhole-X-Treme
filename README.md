@@ -1,5 +1,7 @@
 # Wormhole X-Treme v1.1.5
 
+**Tested on 1.21.11 and 26.2**
+
 ## New Install:
 
 0. Download the jar containing plugin, hsqldb, and gate shape files.
