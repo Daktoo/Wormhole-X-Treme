@@ -43,6 +43,15 @@ public class WXRemove implements CommandExecutor, TabCompleter {
             return false;
         }
         Stargate s = StargateManager.getStargate(a[0]);
+        if (s == null) {
+            // Not in the main registry, but an orphaned entry may still be sitting
+            // in a network list and showing up on other gates' dialer signs.
+            Stargate orphan = StargateManager.findOrphanedGate(a[0]);
+            if (orphan != null && StargateManager.purgeOrphanedGate(a[0])) {
+                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Cleared orphaned wormhole entry: " + a[0]);
+                return true;
+            }
+        }
         if (s != null) {
             if (!CommandUtilities.playerCheck(sender) || WXPermissions.checkPermission((Player) sender, s, WXPermissions.PermissionType.REMOVE)) {
                 boolean destroy = a.length == 2 && a[1].equalsIgnoreCase("-all");
