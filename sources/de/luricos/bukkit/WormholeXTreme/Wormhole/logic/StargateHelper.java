@@ -1149,7 +1149,13 @@ public class StargateHelper {
             if (net == null) {
                 net = StargateManager.addStargateNetwork(networkName);
             }
-            StargateManager.addGateToNetwork(stargate, networkName);
+            // The gate is still only a build candidate here - the player may have
+            // no permission, may pick a name already in use, may fail the economy
+            // charge, or may simply walk away. Assign the network so completion
+            // knows where the gate belongs, but do not put it in the network lists;
+            // StargateManager.addStargate() does that once the gate is real.
+            // Registering candidates left orphaned entries with a null owner that
+            // no command could reach and no click could refresh.
             stargate.setGateNetwork(net);
             stargate.setGateDialSignIndex(-1);
             WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(stargate, StargateUpdateRunnable.ActionToTake.DIAL_SIGN_CLICK));
