@@ -150,6 +150,25 @@ public class WXPermissions {
                     return false;
             }
         }
+        // No permissions plugin available (or support disabled). Ops were already
+        // granted above, so anything reaching here is a non-op. The gate-scoped
+        // fallback below needs a stargate to reason about, which the list
+        // commands never have, so they failed outright and left /wxlist unusable
+        // for everyone but ops.
+        if (stargate == null) {
+            switch (permissionType) {
+                case LIST_SELF:
+                    // Listing your own gates exposes nothing you did not build.
+                    return true;
+                case LIST:
+                case LIST_ALL:
+                case TOP:
+                    // Listing every gate on the server stays op-only.
+                    return false;
+                default:
+                    return false;
+            }
+        }
         if (stargate != null) {
             switch (permissionType) {
                 case DAMAGE:
