@@ -66,14 +66,6 @@ public class StargateManager {
         }
     }
 
-    /**
-     * Add a gate to a network list without ever creating a duplicate entry.
-     *
-     * A plain add() let the same gate be registered repeatedly, and let an
-     * abandoned build candidate keep a slot in the rotation alongside the real
-     * gate of the same name. If an entry already carries this gate's name it is
-     * replaced, so a live gate always supersedes a stale instance.
-     */
     private static void registerInNetworkList(ArrayList<Stargate> list, Stargate gate) {
         for (int i = 0; i < list.size(); i++) {
             Stargate other = list.get(i);
@@ -88,14 +80,12 @@ public class StargateManager {
         list.add(gate);
     }
 
-    /** True when both gates carry the same non-empty name. */
     private static boolean isSameGateName(Stargate first, Stargate second) {
         return first != null && second != null
                 && first.getGateName() != null && !first.getGateName().isEmpty()
                 && first.getGateName().equals(second.getGateName());
     }
 
-    /** Drop every entry naming this gate, whatever instance is holding the slot. */
     private static void purgeFromNetworkList(ArrayList<Stargate> list, Stargate gate, String gateName) {
         list.removeIf(entry -> entry == gate
                 || (entry != null && gateName != null && gateName.equals(entry.getGateName())));
@@ -143,6 +133,9 @@ public class StargateManager {
         if (posDupe != null) {
             return false;
         }
+        if (findGateTooClose(stargate) != null) {
+            return false;
+        }
         stargate.setGateOwner(playerName);
         stargate.completeGate(stargate.getGateName(), "");
         WXTLogger.prettyLog(Level.INFO, false, "Player: " + playerName + " completed a wormhole: " + stargate.getGateName());
@@ -184,6 +177,12 @@ public class StargateManager {
     }
 
     public static boolean completeStargate(String playerName, String gateName, String idc, String network) {
+        // Peek before removing: if the gate is rejected the player keeps their
+        // pending build and can move it rather than having to start over.
+        Stargate pending = getIncompleteStargates().get(playerName);
+        if (pending != null && findGateTooClose(pending) != null) {
+            return false;
+        }
         Stargate complete = getIncompleteStargates().remove(playerName);
         if (complete != null) {
             if (!network.equals("")) {
@@ -243,6 +242,35 @@ public class StargateManager {
         return (HashMap) allGateBlocks;
     }
 
+    public static Stargate findGateTooClose(Stargate candidate) {
+        int minimumDistance = ConfigManager.getWormholeMinimumGateDistance();
+        if (minimumDistance <= 0 || candidate == null) {
+            return null;
+        }
+        Location candidateCentre = candidate.getGatePlayerTeleportLocation();
+        if (candidateCentre == null && candidate.getGateDialLeverBlock() != null) {
+            candidateCentre = candidate.getGateDialLeverBlock().getLocation();
+        }
+        if (candidateCentre == null || candidateCentre.getWorld() == null) {
+            return null;
+        }
+        double minimumDistanceSquared = (double) minimumDistance * (double) minimumDistance;
+        for (Stargate existing : getAllGates()) {
+            if (existing == candidate || existing.getGateName() == null
+                    || existing.getGateName().equals(candidate.getGateName())) {
+                continue;
+            }
+            if (existing.getGateWorld() == null
+                    || !existing.getGateWorld().equals(candidateCentre.getWorld())) {
+                continue;
+            }
+            if (distanceSquaredToClosestGateBlock(candidateCentre, existing) < minimumDistanceSquared) {
+                return existing;
+            }
+        }
+        return null;
+    }
+
     public static ArrayList<Stargate> getAllGates() {
         ArrayList<Stargate> gates = new ArrayList<>();
         for (Stargate s : getStargateList().values()) {
@@ -297,11 +325,6 @@ public class StargateManager {
         return distance;
     }
 
-    /**
-     * Find a gate that is present in a network list but missing from the main
-     * registry. These orphans cannot be reached by name through getStargate(),
-     * so /wxremove had no way to clear one.
-     */
     public static Stargate findOrphanedGate(String gateName) {
         if (gateName == null || getStargateList().containsKey(gateName)) {
             return null;
@@ -323,10 +346,6 @@ public class StargateManager {
         return null;
     }
 
-    /**
-     * Drop every trace of an orphaned gate from the network lists and the block
-     * index. Returns true if anything was actually removed.
-     */
     public static boolean purgeOrphanedGate(String gateName) {
         if (gateName == null || getStargateList().containsKey(gateName)) {
             return false;
