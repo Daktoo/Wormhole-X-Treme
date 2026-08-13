@@ -49,18 +49,56 @@ public class StargateManager {
     }
 
     public static void addGateToNetwork(Stargate gate, String network) {
+        if (gate == null || network == null) {
+            return;
+        }
         if (!getStargateNetworks().containsKey(network)) {
             addStargateNetwork(network);
         }
         StargateNetwork net = getStargateNetworks().get(network);
         if (net != null) {
             synchronized (net.getNetworkGateLock()) {
-                net.getNetworkGateList().add(gate);
+                registerInNetworkList(net.getNetworkGateList(), gate);
                 if (gate.isGateSignPowered()) {
-                    net.getNetworkSignGateList().add(gate);
+                    registerInNetworkList(net.getNetworkSignGateList(), gate);
                 }
             }
         }
+    }
+
+    /**
+     * Add a gate to a network list without ever creating a duplicate entry.
+     *
+     * A plain add() let the same gate be registered repeatedly, and let an
+     * abandoned build candidate keep a slot in the rotation alongside the real
+     * gate of the same name. If an entry already carries this gate's name it is
+     * replaced, so a live gate always supersedes a stale instance.
+     */
+    private static void registerInNetworkList(ArrayList<Stargate> list, Stargate gate) {
+        for (int i = 0; i < list.size(); i++) {
+            Stargate other = list.get(i);
+            if (other == gate) {
+                return;
+            }
+            if (isSameGateName(other, gate)) {
+                list.set(i, gate);
+                return;
+            }
+        }
+        list.add(gate);
+    }
+
+    /** True when both gates carry the same non-empty name. */
+    private static boolean isSameGateName(Stargate first, Stargate second) {
+        return first != null && second != null
+                && first.getGateName() != null && !first.getGateName().isEmpty()
+                && first.getGateName().equals(second.getGateName());
+    }
+
+    /** Drop every entry naming this gate, whatever instance is holding the slot. */
+    private static void purgeFromNetworkList(ArrayList<Stargate> list, Stargate gate, String gateName) {
+        list.removeIf(entry -> entry == gate
+                || (entry != null && gateName != null && gateName.equals(entry.getGateName())));
     }
 
     public static void addIncompleteStargate(String playerName, Stargate stargate) {
@@ -82,6 +120,9 @@ public class StargateManager {
         }
         for (Location b2 : s.getGatePortalBlocks()) {
             getAllGateBlocks().put(b2, s);
+        }
+        if (s.getGateNetwork() != null) {
+            addGateToNetwork(s, s.getGateNetwork().getNetworkName());
         }
     }
 
@@ -254,6 +295,62 @@ public class StargateManager {
         return distance;
     }
 
+    /**
+     * Find a gate that is present in a network list but missing from the main
+     * registry. These orphans cannot be reached by name through getStargate(),
+     * so /wxremove had no way to clear one.
+     */
+    public static Stargate findOrphanedGate(String gateName) {
+        if (gateName == null || getStargateList().containsKey(gateName)) {
+            return null;
+        }
+        for (StargateNetwork net : getStargateNetworks().values()) {
+            synchronized (net.getNetworkGateLock()) {
+                for (Stargate gate : net.getNetworkGateList()) {
+                    if (gate != null && gateName.equals(gate.getGateName())) {
+                        return gate;
+                    }
+                }
+                for (Stargate gate : net.getNetworkSignGateList()) {
+                    if (gate != null && gateName.equals(gate.getGateName())) {
+                        return gate;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Drop every trace of an orphaned gate from the network lists and the block
+     * index. Returns true if anything was actually removed.
+     */
+    public static boolean purgeOrphanedGate(String gateName) {
+        if (gateName == null || getStargateList().containsKey(gateName)) {
+            return false;
+        }
+        boolean removed = false;
+        for (StargateNetwork net : getStargateNetworks().values()) {
+            synchronized (net.getNetworkGateLock()) {
+                removed |= net.getNetworkGateList().removeIf(gate -> gate != null && gateName.equals(gate.getGateName()));
+                removed |= net.getNetworkSignGateList().removeIf(gate -> gate != null && gateName.equals(gate.getGateName()));
+                for (Stargate other : net.getNetworkSignGateList()) {
+                    Stargate signTarget = other.getGateDialSignTarget();
+                    if (signTarget != null && gateName.equals(signTarget.getGateName())) {
+                        other.setGateDialSignTarget(null);
+                        other.setGateDialSignIndex(0);
+                        WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(other, StargateUpdateRunnable.ActionToTake.DIAL_SIGN_CLICK));
+                    }
+                }
+            }
+        }
+        removed |= getAllGateBlocks().values().removeIf(indexed -> indexed != null && gateName.equals(indexed.getGateName()));
+        if (removed) {
+            WXTLogger.prettyLog(Level.INFO, false, "Purged orphaned stargate entry '" + gateName + "'.");
+        }
+        return removed;
+    }
+
     public static Stargate getStargate(String gateName) {
         if (getStargateList().containsKey(gateName)) {
             return getStargateList().get(gateName);
@@ -307,19 +404,26 @@ public class StargateManager {
     }
 
     public static void removeStargate(Stargate s) {
-        getStargateList().remove(s.getGateName());
-        if (WormholePlayerManager.findPlayerByGateName(s.getGateName()) != null) {
-            WormholePlayerManager.findPlayerByGateName(s.getGateName()).removeStargate(s);
+        if (s == null) {
+            return;
+        }
+        String gateName = s.getGateName();
+        getStargateList().remove(gateName);
+        if (WormholePlayerManager.findPlayerByGateName(gateName) != null) {
+            WormholePlayerManager.findPlayerByGateName(gateName).removeStargate(s);
         }
         StargateDBManager.removeStargateFromSQL(s);
         if (s.getGateNetwork() != null) {
             synchronized (s.getGateNetwork().getNetworkGateLock()) {
-                s.getGateNetwork().getNetworkGateList().remove(s);
-                if (s.isGateSignPowered()) {
-                    s.getGateNetwork().getNetworkSignGateList().remove(s);
-                }
+                purgeFromNetworkList(s.getGateNetwork().getNetworkGateList(), s, gateName);
+                purgeFromNetworkList(s.getGateNetwork().getNetworkSignGateList(), s, gateName);
                 for (Stargate s2 : s.getGateNetwork().getNetworkSignGateList()) {
-                    if (s2.getGateDialSignTarget() != null && s2.getGateDialSignTarget().getGateId() == s.getGateId() && s2.isGateSignPowered()) {
+                    Stargate signTarget = s2.getGateDialSignTarget();
+                    boolean targetsRemovedGate = signTarget != null
+                            && (signTarget == s
+                                || isSameGateName(signTarget, s)
+                                || (s.getGateId() >= 0 && signTarget.getGateId() == s.getGateId()));
+                    if (targetsRemovedGate && s2.isGateSignPowered()) {
                         s2.setGateDialSignTarget(null);
                         if (s.getGateNetwork().getNetworkSignGateList().size() > 1) {
                             s2.setGateDialSignIndex(0);
@@ -335,6 +439,8 @@ public class StargateManager {
         for (Location b2 : s.getGatePortalBlocks()) {
             getAllGateBlocks().remove(b2);
         }
+        getAllGateBlocks().values().removeIf(indexed -> indexed == s
+                || (indexed != null && gateName != null && gateName.equals(indexed.getGateName())));
     }
 
     public static Stargate getStargateByPlayer(Player player) {
