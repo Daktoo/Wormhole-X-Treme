@@ -32,8 +32,11 @@ public class WormholeXTremeBlockListener implements Listener {
                 if (block.getType() == (stargate.isGateCustom() ? stargate.getGateCustomIrisMaterial() : stargate.getGateShape() != null ? stargate.getGateShape().getShapeIrisMaterial() : Material.STONE)) {
                     return true;
                 }
-                if (stargate.isGateActive()) {
-                    stargate.setGateActive(false);
+                if (stargate.isGateActive() || stargate.isWormholeEstablished()
+                        || stargate.getGateTarget() != null || stargate.getSourceGateName() != null) {
+                    // Full shutdown rather than just clearing the local flags, so
+                    // the gate at the other end of the wormhole closes too.
+                    stargate.shutdownStargate(false);
                     stargate.fillGateInterior(Material.AIR);
                 }
                 if (stargate.isGateLightsActive()) {
