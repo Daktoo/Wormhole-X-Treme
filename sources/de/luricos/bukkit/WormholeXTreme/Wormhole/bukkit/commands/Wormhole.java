@@ -274,6 +274,9 @@ public class Wormhole implements CommandExecutor, TabCompleter {
             if (a[0].equalsIgnoreCase("kickback_count")) {
                 return setWormholeKickbackBlockCount(sender, a);
             }
+            if (a[0].equalsIgnoreCase("min_gate_distance")) {
+                return setWormholeMinimumGateDistance(sender, a);
+            }
             if (a[0].equalsIgnoreCase("permissions")) {
                 return doShowPermissions(sender, a);
             }
@@ -879,6 +882,34 @@ public class Wormhole implements CommandExecutor, TabCompleter {
                 return true;
             }
             player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Wormhole kickback block count: '" + ConfigManager.getWormholeKickbackBlockCount() + "'");
+            return true;
+        }
+        return true;
+    }
+
+    public static boolean setWormholeMinimumGateDistance(CommandSender sender, String[] args) {
+        if (args.length >= 1 && (sender instanceof Player)) {
+            Player player = (Player) sender;
+            if (args.length >= 2) {
+                try {
+                    int configVal = Integer.parseInt(args[1]);
+                    if (configVal >= 0) {
+                        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Minimum gate distance changed from '" + ConfigManager.getWormholeMinimumGateDistance() + "' to '" + configVal + "'");
+                        if (configVal == 0) {
+                            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Minimum gate distance is now disabled.");
+                        } else {
+                            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Existing gates are unaffected. The rule applies to gates built from now on.");
+                        }
+                        ConfigManager.setWormholeMinimumGateDistance(configVal);
+                        return true;
+                    }
+                    player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Minimum gate distance must be a non-negative number.");
+                } catch (NumberFormatException e) {
+                    player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Minimum gate distance has to be a number. '" + args[1] + "' is invalid.");
+                }
+                return true;
+            }
+            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Minimum gate distance: '" + ConfigManager.getWormholeMinimumGateDistance() + "'" + (ConfigManager.getWormholeMinimumGateDistance() == 0 ? " (disabled)" : " blocks"));
             return true;
         }
         return true;
