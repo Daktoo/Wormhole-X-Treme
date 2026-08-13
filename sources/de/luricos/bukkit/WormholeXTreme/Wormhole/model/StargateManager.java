@@ -66,6 +66,14 @@ public class StargateManager {
         }
     }
 
+    /**
+     * Add a gate to a network list without ever creating a duplicate entry.
+     *
+     * A plain add() let the same gate be registered repeatedly, and let an
+     * abandoned build candidate keep a slot in the rotation alongside the real
+     * gate of the same name. If an entry already carries this gate's name it is
+     * replaced, so a live gate always supersedes a stale instance.
+     */
     private static void registerInNetworkList(ArrayList<Stargate> list, Stargate gate) {
         for (int i = 0; i < list.size(); i++) {
             Stargate other = list.get(i);
@@ -80,12 +88,14 @@ public class StargateManager {
         list.add(gate);
     }
 
+    /** True when both gates carry the same non-empty name. */
     private static boolean isSameGateName(Stargate first, Stargate second) {
         return first != null && second != null
                 && first.getGateName() != null && !first.getGateName().isEmpty()
                 && first.getGateName().equals(second.getGateName());
     }
 
+    /** Drop every entry naming this gate, whatever instance is holding the slot. */
     private static void purgeFromNetworkList(ArrayList<Stargate> list, Stargate gate, String gateName) {
         list.removeIf(entry -> entry == gate
                 || (entry != null && gateName != null && gateName.equals(entry.getGateName())));
@@ -242,6 +252,20 @@ public class StargateManager {
         return (HashMap) allGateBlocks;
     }
 
+    /**
+     * Find an existing stargate that sits closer to this candidate than the
+     * configured minimum gate distance allows.
+     *
+     * Distance is measured from the candidate's centre to the nearest block of
+     * each existing gate, in the same world only. A configured distance of 0
+     * disables the check entirely.
+     *
+     * This is only ever called when a gate is being built. Gates already standing
+     * closer together than the configured minimum are left alone - the rule
+     * applies to new construction, not to what is already on the map.
+     *
+     * @return the offending gate, or null if the candidate has enough room.
+     */
     public static Stargate findGateTooClose(Stargate candidate) {
         int minimumDistance = ConfigManager.getWormholeMinimumGateDistance();
         if (minimumDistance <= 0 || candidate == null) {
@@ -325,6 +349,11 @@ public class StargateManager {
         return distance;
     }
 
+    /**
+     * Find a gate that is present in a network list but missing from the main
+     * registry. These orphans cannot be reached by name through getStargate(),
+     * so /wxremove had no way to clear one.
+     */
     public static Stargate findOrphanedGate(String gateName) {
         if (gateName == null || getStargateList().containsKey(gateName)) {
             return null;
@@ -346,6 +375,10 @@ public class StargateManager {
         return null;
     }
 
+    /**
+     * Drop every trace of an orphaned gate from the network lists and the block
+     * index. Returns true if anything was actually removed.
+     */
     public static boolean purgeOrphanedGate(String gateName) {
         if (gateName == null || getStargateList().containsKey(gateName)) {
             return false;
