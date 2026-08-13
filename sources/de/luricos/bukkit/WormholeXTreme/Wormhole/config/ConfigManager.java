@@ -32,6 +32,7 @@ public class ConfigManager {
         USE_EVENT_OR_TP_TRANSPORT,
         WORMHOLE_KICKBACK_BLOCK_COUNT,
         WORMHOLE_MAX_GATE_NAME_LENGTH,
+        WORMHOLE_MINIMUM_GATE_DISTANCE,
         PERMISSIONS_BACKEND,
         ECONOMY_ENABLED
     }
@@ -59,6 +60,7 @@ public class ConfigManager {
         constructNameInvalid(errorHeader + "Gate name invalid: "),
         constructNameTooLong(errorHeader + "Gate name too long: "),
         constructNameTaken(errorHeader + "Gate name already taken: "),
+        constructTooCloseToGate(errorHeader + "Too close to gate %s. Stargates must be at least %s blocks apart."),
         requestInvalid(errorHeader + "Invalid Request"),
         gateNotSpecified(errorHeader + "No gate name specified."),
         playerBuildCountRestricted(errorHeader + "You are at your max number of built gates."),
@@ -180,6 +182,17 @@ public class ConfigManager {
 
     public static void setWormholeMaxGateNameLength(int maxLength) {
         setConfigValue(ConfigKeys.WORMHOLE_MAX_GATE_NAME_LENGTH, Integer.valueOf(maxLength));
+    }
+
+    public static int getWormholeMinimumGateDistance() {
+        if (isConfigurationKey(ConfigKeys.WORMHOLE_MINIMUM_GATE_DISTANCE)) {
+            return getSetting(ConfigKeys.WORMHOLE_MINIMUM_GATE_DISTANCE).getIntValue();
+        }
+        return 0;
+    }
+
+    public static void setWormholeMinimumGateDistance(int minimumDistance) {
+        setConfigValue(ConfigKeys.WORMHOLE_MINIMUM_GATE_DISTANCE, Integer.valueOf(minimumDistance));
     }
 
     public static boolean getPermissionsSupportDisable() {
