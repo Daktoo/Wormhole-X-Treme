@@ -124,6 +124,13 @@ public class WormholeXTremePlayerListener implements Listener {
                         return true;
                     }
 
+                    Stargate tooClose = StargateManager.findGateTooClose(newGate);
+                    if (tooClose != null) {
+                        player.sendMessage(String.format(ConfigManager.MessageStrings.constructTooCloseToGate.toString(),
+                                tooClose.getGateName(), ConfigManager.getWormholeMinimumGateDistance()));
+                        return true;
+                    }
+
                     boolean success = StargateManager.completeStargate(player, newGate);
                     if (success) {
                         player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
