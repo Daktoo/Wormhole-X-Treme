@@ -58,6 +58,7 @@ public class Stargate {
     private boolean gateLightsActive = false;
     private Stargate gateTarget = null;
     private long gateTempSignTarget = -1;
+    private transient boolean gateShuttingDown = false;
     private int gateDialSignIndex = 0;
     private long gateTempTargetId = -1;
     private String gateIrisDeactivationCode = "";
@@ -300,8 +301,36 @@ public class Stargate {
         return false;
     }
 
+    /**
+     * True when this gate is already part of a wormhole and must not be dialled
+     * into by a third gate.
+     *
+     * A stale back-reference is self-healed: if sourceGateName names a gate that
+     * has gone away, or one that is no longer pointed at us, the gate is free.
+     */
+    public boolean isGateInUse() {
+        if (isGateActive() || isGateLightsActive() || isWormholeEstablished() || getGateTarget() != null) {
+            return true;
+        }
+        String sourceName = getSourceGateName();
+        if (sourceName == null) {
+            return false;
+        }
+        Stargate sourceGate = StargateManager.getStargate(sourceName);
+        if (sourceGate == null || sourceGate.getGateTarget() != this) {
+            setSourceGateName(null);
+            return false;
+        }
+        return true;
+    }
+
     public boolean dialStargate(Stargate target, boolean force) {
         WXTLogger.prettyLog(Level.FINER, false, "Dialing Stargate: '" + target.getGateName() + "'; force:='" + force + "'");
+        if (!force && target.isGateInUse()) {
+            WXTLogger.prettyLog(Level.FINE, false, "Refused dial from '" + getGateName() + "' to '" + target.getGateName()
+                    + "': target is already engaged (source: '" + target.getSourceGateName() + "').");
+            return false;
+        }
         if (getGateActivateTaskId() > 0) {
             WXTLogger.prettyLog(Level.FINER, false, "Cancelling ActivateTaskID: " + getGateActivateTaskId() + " for gate '" + target.getGateName() + "'");
             WormholeXTreme.getScheduler().cancelTask(getGateActivateTaskId());
@@ -1049,37 +1078,60 @@ public class Stargate {
     }
 
     public void shutdownStargate(boolean timer) {
-        if (getGateShutdownTaskId() > 0) {
-            WXTLogger.prettyLog(Level.FINE, false, "Wormhole \"" + getGateName() + "\" ShutdownTaskID \"" + getGateShutdownTaskId() + "\" cancelled.");
-            WormholeXTreme.getScheduler().cancelTask(getGateShutdownTaskId());
-            setGateShutdownTaskId(-1);
+        if (this.gateShuttingDown) {
+            // Re-entered from the far end's cascade; the other side is already
+            // tearing this one down.
+            return;
         }
-        if (getGateTarget() != null) {
-            getGateTarget().shutdownStargate(true);
-            getGateTarget().setSourceGateName(null);
-        }
-        setGateTarget(null);
-        if (timer) {
-            setGateRecentlyActive(true);
-        }
-        setGateActive(false);
-        lightStargate(false);
-        setWormholeEstablished(false);
-        setSourceGateName(null);
-        toggleDialLeverState(false);
-        toggleRedstoneGateActivatedPower();
-        if (isGateIrisDefaultActive()) {
-            setIrisState(isGateIrisDefaultActive());
-        } else if (!isGateIrisActive()) {
-            fillGateInterior(Material.AIR);
-        }
-        if (timer) {
-            startAfterShutdownTimer();
-        }
-        WorldUtils.scheduleChunkUnload(getGatePlayerTeleportLocation().getBlock());
-        StargateManager.removeActivatedStargate(getGateName());
-        if (WormholePlayerManager.findPlayerByGateName(getGateName()) != null) {
-            WormholePlayerManager.findPlayerByGateName(getGateName()).removeStargate(getGateName());
+        this.gateShuttingDown = true;
+        try {
+            // Captured before the field is cleared below, so the far end can be
+            // closed when this gate is the *destination* rather than the dialler.
+            String sourceName = getSourceGateName();
+            if (getGateShutdownTaskId() > 0) {
+                WXTLogger.prettyLog(Level.FINE, false, "Wormhole \"" + getGateName() + "\" ShutdownTaskID \"" + getGateShutdownTaskId() + "\" cancelled.");
+                WormholeXTreme.getScheduler().cancelTask(getGateShutdownTaskId());
+                setGateShutdownTaskId(-1);
+            }
+            if (getGateTarget() != null) {
+                getGateTarget().shutdownStargate(true);
+                getGateTarget().setSourceGateName(null);
+            }
+            setGateTarget(null);
+            if (timer) {
+                setGateRecentlyActive(true);
+            }
+            setGateActive(false);
+            lightStargate(false);
+            setWormholeEstablished(false);
+            setSourceGateName(null);
+            toggleDialLeverState(false);
+            toggleRedstoneGateActivatedPower();
+            if (isGateIrisDefaultActive()) {
+                setIrisState(isGateIrisDefaultActive());
+            } else if (!isGateIrisActive()) {
+                fillGateInterior(Material.AIR);
+            }
+            if (timer) {
+                startAfterShutdownTimer();
+            }
+            WorldUtils.scheduleChunkUnload(getGatePlayerTeleportLocation().getBlock());
+            StargateManager.removeActivatedStargate(getGateName());
+            if (WormholePlayerManager.findPlayerByGateName(getGateName()) != null) {
+                WormholePlayerManager.findPlayerByGateName(getGateName()).removeStargate(getGateName());
+            }
+            // Close the dialling end too. Previously the cascade only ran from
+            // dialler to destination, so tearing down the far end left the origin
+            // gate sitting open with an open portal and no destination.
+            if (sourceName != null) {
+                Stargate sourceGate = StargateManager.getStargate(sourceName);
+                if (sourceGate != null && sourceGate != this) {
+                    WXTLogger.prettyLog(Level.FINE, false, "Closing dialling gate '" + sourceName + "' because '" + getGateName() + "' shut down.");
+                    sourceGate.shutdownStargate(timer);
+                }
+            }
+        } finally {
+            this.gateShuttingDown = false;
         }
     }
 
@@ -1280,6 +1332,10 @@ public class Stargate {
                     nextIndex = direction == 1 ? 0 : signGates.size() - 1;
                 } else {
                     nextIndex = ((currentIndex + direction) % signGates.size() + signGates.size()) % signGates.size();
+                    // A click must always move the selection on. If the position lookup
+                    // resolved to a stale slot we would otherwise land back on the gate
+                    // that is already selected, and the sign would sit frozen instead of
+                    // wrapping round to the start of the list.
                     if (signGates.size() > 1 && isSameSignGate(signGates.get(nextIndex), currentTarget)) {
                         nextIndex = ((nextIndex + direction) % signGates.size() + signGates.size()) % signGates.size();
                     }
