@@ -35,6 +35,16 @@ public class Complete implements CommandExecutor {
                 if (!StargateRestrictions.isPlayerBuildRestricted(player)) {
                     if (StargateManager.getStargate(name) == null) {
 
+                        Stargate pending = StargateManager.getIncompleteStargate(player);
+                        Stargate tooClose = StargateManager.findGateTooClose(pending);
+                        if (tooClose != null) {
+                            // Checked before the economy charge so a refused build
+                            // never costs the player anything.
+                            player.sendMessage(String.format(ConfigManager.MessageStrings.constructTooCloseToGate.toString(),
+                                    tooClose.getGateName(), ConfigManager.getWormholeMinimumGateDistance()));
+                            return true;
+                        }
+
                         if (ConfigManager.isEconomyEnabled() && EconomyManager.isEconomyEnabled()) {
                             Stargate incomplete = StargateManager.getIncompleteStargate(player);
                             StargateShape shape = incomplete != null ? incomplete.getGateShape() : null;
