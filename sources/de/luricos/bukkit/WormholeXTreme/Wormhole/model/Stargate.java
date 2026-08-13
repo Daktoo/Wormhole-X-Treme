@@ -1141,6 +1141,45 @@ public class Stargate {
         this.stargateIsValid = false;
     }
 
+    private static int indexOfSignGate(java.util.List<Stargate> signGates, Stargate target) {
+        if (signGates == null || target == null) {
+            return -1;
+        }
+        for (int i = 0; i < signGates.size(); i++) {
+            if (signGates.get(i) == target) {
+                return i;
+            }
+        }
+        if (target.getGateName() != null) {
+            for (int i = 0; i < signGates.size(); i++) {
+                if (target.getGateName().equals(signGates.get(i).getGateName())) {
+                    return i;
+                }
+            }
+        }
+        if (target.getGateId() >= 0) {
+            for (int i = 0; i < signGates.size(); i++) {
+                if (signGates.get(i).getGateId() == target.getGateId()) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+
+    private static boolean isSameSignGate(Stargate first, Stargate second) {
+        if (first == null || second == null) {
+            return false;
+        }
+        if (first == second) {
+            return true;
+        }
+        if (first.getGateName() != null && first.getGateName().equals(second.getGateName())) {
+            return true;
+        }
+        return first.getGateId() >= 0 && first.getGateId() == second.getGateId();
+    }
+
     public void dialSignClicked(Action eventAction) {
         String line2;
         synchronized (getGateNetwork().getNetworkGateLock()) {
@@ -1168,7 +1207,8 @@ public class Stargate {
                 }
                 ArrayList<Stargate> signGates = new ArrayList<>();
                 for (Stargate gate : getGateNetwork().getNetworkSignGateList()) {
-                    if (gate != null && gate.getGateName() != null && !gate.getGateName().equals(getGateName())) {
+                    if (gate != null && gate.getGateName() != null && !gate.getGateName().equals(getGateName())
+                            && indexOfSignGate(signGates, gate) == -1) {
                         signGates.add(gate);
                     }
                 }
@@ -1180,17 +1220,8 @@ public class Stargate {
                     setGateDialSignTarget(null);
                     return;
                 }
-                int currentIndex = -1;
+                int currentIndex = indexOfSignGate(signGates, getGateDialSignTarget());
                 Stargate currentTarget = getGateDialSignTarget();
-                if (currentTarget != null) {
-                    for (int i = 0; i < signGates.size(); i++) {
-                        if (signGates.get(i).getGateId() == currentTarget.getGateId()
-                                || (signGates.get(i).getGateName() != null && signGates.get(i).getGateName().equals(currentTarget.getGateName()))) {
-                            currentIndex = i;
-                            break;
-                        }
-                    }
-                }
                 if (currentIndex == -1) {
                     int savedIndex = getGateDialSignIndex();
                     if (savedIndex >= 0 && savedIndex < signGates.size()) {
@@ -1202,6 +1233,13 @@ public class Stargate {
                     nextIndex = direction == 1 ? 0 : signGates.size() - 1;
                 } else {
                     nextIndex = ((currentIndex + direction) % signGates.size() + signGates.size()) % signGates.size();
+                    // A click must always move the selection on. If the position lookup
+                    // resolved to a stale slot we would otherwise land back on the gate
+                    // that is already selected, and the sign would sit frozen instead of
+                    // wrapping round to the start of the list.
+                    if (signGates.size() > 1 && isSameSignGate(signGates.get(nextIndex), currentTarget)) {
+                        nextIndex = ((nextIndex + direction) % signGates.size() + signGates.size()) % signGates.size();
+                    }
                 }
                 WXTLogger.prettyLog(Level.FINE, false, "DIAL DEBUG gate='" + getGateName() + "' eventAction=" + eventAction
                         + " direction=" + direction + " signGates=" + signGates.stream().map(Stargate::getGateName).collect(java.util.stream.Collectors.joining(","))
