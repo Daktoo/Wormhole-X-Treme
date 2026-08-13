@@ -1141,6 +1141,49 @@ public class Stargate {
         this.stargateIsValid = false;
     }
 
+    /**
+     * True when two references describe the same stargate for list-building
+     * purposes. Only object identity and gate name are considered - gate names are
+     * unique keys in StargateManager, so they are the reliable identity here.
+     *
+     * The numeric gate id deliberately plays no part. It is unset (-1) until the
+     * gate reaches the database, and ResultSet.getInt() hands back 0 when the Id
+     * column is null, so several live gates routinely share an id value. Using it
+     * to detect duplicates collapses the whole network down to a single entry.
+     */
+    private static boolean isDuplicateSignGate(Stargate first, Stargate second) {
+        if (first == null || second == null) {
+            return false;
+        }
+        if (first == second) {
+            return true;
+        }
+        return first.getGateName() != null && first.getGateName().equals(second.getGateName());
+    }
+
+    /** True when signGates already holds this gate. */
+    private static boolean containsSignGate(java.util.List<Stargate> signGates, Stargate gate) {
+        for (Stargate other : signGates) {
+            if (isDuplicateSignGate(other, gate)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Find where a gate sits in the dial sign rotation list.
+     *
+     * Object identity and gate name are tested before the numeric gate id, because
+     * the id is unreliable: it stays at its -1 placeholder until the gate has been
+     * written to the database, and comes back as 0 whenever the Id column is null.
+     * An id-first lookup matches the first entry in the list no matter which gate
+     * is actually selected, which pins the rotation and stops the list wrapping.
+     * The id is only consulted as a last resort, and only when it is a real
+     * assigned value.
+     *
+     * @return the index of the gate in signGates, or -1 if it is not in the list.
+     */
     private static int indexOfSignGate(java.util.List<Stargate> signGates, Stargate target) {
         if (signGates == null || target == null) {
             return -1;
@@ -1157,7 +1200,7 @@ public class Stargate {
                 }
             }
         }
-        if (target.getGateId() >= 0) {
+        if (target.getGateId() > 0) {
             for (int i = 0; i < signGates.size(); i++) {
                 if (signGates.get(i).getGateId() == target.getGateId()) {
                     return i;
@@ -1167,6 +1210,10 @@ public class Stargate {
         return -1;
     }
 
+    /**
+     * True when both references describe the same stargate. Gate ids are only
+     * compared once they hold a real assigned value.
+     */
     private static boolean isSameSignGate(Stargate first, Stargate second) {
         if (first == null || second == null) {
             return false;
@@ -1177,7 +1224,7 @@ public class Stargate {
         if (first.getGateName() != null && first.getGateName().equals(second.getGateName())) {
             return true;
         }
-        return first.getGateId() >= 0 && first.getGateId() == second.getGateId();
+        return first.getGateId() > 0 && first.getGateId() == second.getGateId();
     }
 
     public void dialSignClicked(Action eventAction) {
@@ -1208,7 +1255,7 @@ public class Stargate {
                 ArrayList<Stargate> signGates = new ArrayList<>();
                 for (Stargate gate : getGateNetwork().getNetworkSignGateList()) {
                     if (gate != null && gate.getGateName() != null && !gate.getGateName().equals(getGateName())
-                            && indexOfSignGate(signGates, gate) == -1) {
+                            && !containsSignGate(signGates, gate)) {
                         signGates.add(gate);
                     }
                 }
@@ -1233,10 +1280,6 @@ public class Stargate {
                     nextIndex = direction == 1 ? 0 : signGates.size() - 1;
                 } else {
                     nextIndex = ((currentIndex + direction) % signGates.size() + signGates.size()) % signGates.size();
-                    // A click must always move the selection on. If the position lookup
-                    // resolved to a stale slot we would otherwise land back on the gate
-                    // that is already selected, and the sign would sit frozen instead of
-                    // wrapping round to the start of the list.
                     if (signGates.size() > 1 && isSameSignGate(signGates.get(nextIndex), currentTarget)) {
                         nextIndex = ((nextIndex + direction) % signGates.size() + signGates.size()) % signGates.size();
                     }
