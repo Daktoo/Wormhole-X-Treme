@@ -47,8 +47,16 @@ public class WXList implements CommandExecutor, TabCompleter {
             return listSelf(player);
         }
 
+        boolean explicitAll = a.length > 0 && sub.equals("all");
+
         if (!CommandUtilities.playerCheck(sender) || WXPermissions.checkPermission((Player) sender, WXPermissions.PermissionType.LIST_ALL)) {
             return listAll(sender);
+        }
+        Player player = (Player) sender;
+        if (!explicitAll && WXPermissions.checkPermission(player, WXPermissions.PermissionType.LIST_SELF)) {
+            // No argument given and no permission to list every gate: show the
+            // player their own gates rather than refusing outright.
+            return listSelf(player);
         }
         sender.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
         return true;
