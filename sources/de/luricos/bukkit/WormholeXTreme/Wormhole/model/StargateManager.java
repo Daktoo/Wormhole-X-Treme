@@ -121,6 +121,8 @@ public class StargateManager {
         for (Location b2 : s.getGatePortalBlocks()) {
             getAllGateBlocks().put(b2, s);
         }
+        // Network registration happens here, once the gate is real, rather than
+        // during shape detection when it is still only a build candidate.
         if (s.getGateNetwork() != null) {
             addGateToNetwork(s, s.getGateNetwork().getNetworkName());
         }
@@ -408,6 +410,13 @@ public class StargateManager {
             return;
         }
         String gateName = s.getGateName();
+        // Any removal path - /wxremove, a broken block, an admin command - must
+        // close an open wormhole first, or the gate at the far end is left active
+        // with a portal leading to a stargate that no longer exists.
+        if (s.isGateActive() || s.isGateLightsActive() || s.isWormholeEstablished()
+                || s.getGateTarget() != null || s.getSourceGateName() != null) {
+            s.shutdownStargate(false);
+        }
         getStargateList().remove(gateName);
         if (WormholePlayerManager.findPlayerByGateName(gateName) != null) {
             WormholePlayerManager.findPlayerByGateName(gateName).removeStargate(s);
@@ -415,6 +424,9 @@ public class StargateManager {
         StargateDBManager.removeStargateFromSQL(s);
         if (s.getGateNetwork() != null) {
             synchronized (s.getGateNetwork().getNetworkGateLock()) {
+                // Purge by name, not by object identity: any stale instance left
+                // over from an abandoned build carries the same name and would
+                // otherwise survive removal and keep haunting the dialer lists.
                 purgeFromNetworkList(s.getGateNetwork().getNetworkGateList(), s, gateName);
                 purgeFromNetworkList(s.getGateNetwork().getNetworkSignGateList(), s, gateName);
                 for (Stargate s2 : s.getGateNetwork().getNetworkSignGateList()) {
@@ -439,6 +451,10 @@ public class StargateManager {
         for (Location b2 : s.getGatePortalBlocks()) {
             getAllGateBlocks().remove(b2);
         }
+        // Block-index sweep. gateRemove() calls setupGateSign(false) first, which
+        // drops the name sign location out of the structure block list, so the two
+        // loops above cannot clear it. Any surviving entry points at a dead gate
+        // and hands it back out to the next player who clicks that block.
         getAllGateBlocks().values().removeIf(indexed -> indexed == s
                 || (indexed != null && gateName != null && gateName.equals(indexed.getGateName())));
     }
