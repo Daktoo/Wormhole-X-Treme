@@ -1,6 +1,6 @@
 name: WormholeXTreme
 main: de.luricos.bukkit.WormholeXTreme.Wormhole.WormholeXTreme
-version: 1.1.5
+version: 1.1.6
 api-version: 1.21
 authors: [Lologarithm, alron, lycano, Dakto_]
 softdepend: [PermissionsEx, WormholeXTremeWorlds, Help]

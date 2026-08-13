@@ -1,4 +1,4 @@
-# Wormhole X-Treme v1.1.5
+# Wormhole X-Treme v1.1.6
 
 **Tested on 1.21.11 and 26.2**
 
@@ -27,7 +27,7 @@
 
 0.   Download the jar containing plugin, hsqldb, and gate shape files.
 
-1.   Place the WormholeXTreme-1.1.5.jar to your plugins/ folder, overwriting existing file.
+1.   Place the WormholeXTreme-1.1.6.jar to your plugins/ folder, overwriting existing file.
 
 2.   (Optional, if upgrading to 3d shapes) If upgrading from v0.833 or earlier, start server before 
      updating gate shapes. 
