@@ -18,14 +18,9 @@ public class Go implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> names = new ArrayList<>();
-            String prefix = args[0].toLowerCase();
-            for (Stargate gate : StargateManager.getAllGates()) {
-                if (gate.getGateName().toLowerCase().startsWith(prefix)) {
-                    names.add(gate.getGateName());
-                }
-            }
-            return names;
+            // Scoped by list permission: a player who cannot run /wxlist all
+            // only gets their own gates suggested.
+            return new ArrayList<String>(CommandUtilities.getGateNameSuggestions(sender, args[0]));
         }
         return Collections.emptyList();
     }
