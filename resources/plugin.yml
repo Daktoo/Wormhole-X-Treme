@@ -124,10 +124,10 @@ permissions:
     default: op
   wormhole.list:
     description: Can list wormhole gates
-    default: true
+    default: op
   wormhole.list.all:
     description: Can list all wormhole gates with /wxlist all
-    default: true
+    default: op
   wormhole.list.self:
     description: Can list own wormhole gates with /wxlist self
     default: true
