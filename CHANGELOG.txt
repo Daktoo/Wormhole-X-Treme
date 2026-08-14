@@ -13,9 +13,6 @@ Changes 1.1.6 (14/8/26 @ 14:25 BST)
 - Stargates now shut down at both ends when either gate is broken or removed. Previously destroying the destination left the origin gate active with an open portal.
 - A stargate can no longer be dialled while it is already connected to another gate.
 
-
-
-
 Changes 1.1.5 (30/6/26 @ 20:01 BST)
 - Added economy support for players when completing gates, customisable via GateShapePrices.txt - Disabled by default. Requires an up-to-date economy plugin (only tested on Essentials)
 - Added `/wxtop` command to show the most visited gates.
