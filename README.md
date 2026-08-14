@@ -78,8 +78,9 @@
  0. Install Maven and all of its dependencies. 
 
  1.   Git clone the WX repo.
- 1.1. Wormhole X-Treme git repo: git://github.com/Daktoo/Wormhole-X-Treme.git
 
- 2.   Run a `mvn install` in the directory you ran the git clone of WX into.
+ 1.1. Wormhole X-Treme git repo: https://github.com/Daktoo/Wormhole-X-Treme.git
+
+ 2.   Run a `mvn clean up` in the directory you ran the git clone of WX into.
   
  3.   Enjoy plugin that is now in target/. It will be a jar or a package zip.   
