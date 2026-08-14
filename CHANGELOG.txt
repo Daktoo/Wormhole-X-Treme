@@ -1,3 +1,21 @@
+Changes 1.1.6 (14/8/26 @ 14:25 BST)
+- Added a configurable minimum distance between stargates. Default is 0 blocks, which disables the check. Set it with `/wormhole min_gate_distance <blocks>`, or via WORMHOLE_MINIMUM_GATE_DISTANCE in Settings.txt.
+- Gates already standing closer together than the configured minimum are never removed. The rule only applies when a gate is built, and a rejected build is refused before the player is charged.
+- `/wxlist` with no argument now falls back to listing your own gates if you lack permission for `/wxlist all`, instead of refusing outright.
+- `wormhole.list` and `wormhole.list.all` now default to op. `wormhole.list.self` remains available to everyone.
+- Without a permissions plugin installed, list permissions now fall back to op status: ops can list every gate, everyone else can list their own.
+- Tab completion on `/wxgo` and `/dial` now only suggests gates you are allowed to list. Without `/wxlist all` access you are offered your own gates only.
+- `/wxremove` can now clear an orphaned gate entry left behind by an abandoned build.
+- Fixed SignDial target lists not looping back to the start after reaching the end of the list.
+- Fixed SignDial lists showing only a single destination when several gates shared the same database id.
+- Fixed 'ghost' stargates that showed a null owner, never refreshed their dialler sign, and could not be removed with /wxremove. Unfinished builds are no longer registered to a network, and duplicate registrations are now prevented.
+- Fixed stale block index entries surviving gate removal, which left a deleted gate reachable by clicking its name sign.
+- Stargates now shut down at both ends when either gate is broken or removed. Previously destroying the destination left the origin gate active with an open portal.
+- A stargate can no longer be dialled while it is already connected to another gate.
+
+
+
+
 Changes 1.1.5 (30/6/26 @ 20:01 BST)
 - Added economy support for players when completing gates, customisable via GateShapePrices.txt - Disabled by default. Requires an up-to-date economy plugin (only tested on Essentials)
 - Added `/wxtop` command to show the most visited gates.
