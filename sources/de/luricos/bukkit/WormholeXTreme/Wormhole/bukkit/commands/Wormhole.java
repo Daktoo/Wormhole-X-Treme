@@ -32,7 +32,7 @@ public class Wormhole implements CommandExecutor, TabCompleter {
     private static final List<String> SUBCOMMANDS = Arrays.asList(
         "activate_timeout", "cooldown", "custom", "debug", "gateinfo",
         "irismaterial", "kickback_count", "legacyfixgate", "legacyfixgates",
-        "lightmaterial", "owner", "perm", "perms", "permissions",
+        "lightmaterial", "min_gate_distance", "owner", "perm", "perms", "permissions",
         "portalmaterial", "redstone", "regenerate", "regen",
         "restrict", "show_gwm", "show_transport", "simple",
         "timeout", "shutdown_timeout", "toggle_gwm", "toggle_transport",
@@ -198,6 +198,7 @@ public class Wormhole implements CommandExecutor, TabCompleter {
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole toggle_gwm | show_gwm");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole toggle_transport | show_transport");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole kickback_count §8[n]");
+        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole min_gate_distance §8[blocks]");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole gateinfo §8[gate]");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole legacyfixgate §8[gate] -f");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole updategate §8<gate|-all>");
