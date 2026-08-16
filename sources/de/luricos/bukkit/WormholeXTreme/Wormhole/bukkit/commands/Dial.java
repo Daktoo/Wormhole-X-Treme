@@ -52,6 +52,15 @@ public class Dial implements CommandExecutor, TabCompleter {
                         player.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString() + " Not on same network.");
                         return true;
                     }
+                    if (sourceGate.isGateOneSided()) {
+                        // Caught here as well as in dialStargate() so the player
+                        // gets the real reason instead of a "target in use"
+                        // message that has nothing to do with it.
+                        player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Gate '" + sourceGate.getGateName() + "' has no DHD and can only receive incoming wormholes.");
+                        CommandUtilities.closeGate(sourceGate, false);
+                        wormholePlayer.removeStargate(sourceGate);
+                        return true;
+                    }
                     if (sourceGate.isGateIrisActive()) {
                         sourceGate.toggleIrisActive(false);
                     }
