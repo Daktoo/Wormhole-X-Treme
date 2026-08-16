@@ -6,7 +6,7 @@
 
     <groupId>de.luricos.bukkit</groupId>
     <artifactId>WormholeXTreme</artifactId>
-    <version>1.1.6</version>
+    <version>1.1.6-DEV</version>
     <packaging>jar</packaging>
 
     <repositories>

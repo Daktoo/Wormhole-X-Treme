@@ -429,16 +429,100 @@ public class ShapeBuilderManager {
         TextComponent mods = new TextComponent("\u00a78Roles: ");
         for (ShapePalette.Modifier modifier : ShapePalette.getModifiers()) {
             boolean on = ShapePalette.hasModifier(current, modifier.getToken());
-            String tooltip = "\u00a77:" + modifier.getToken() + "\n\u00a7f" + modifier.getDescription()
-                    + "\n\u00a78Click to " + (on ? "remove it from" : "add it to") + " this block.";
-            mods.addExtra(button(" [" + modifier.getLabel() + "] ", on ? "\u00a7a" : "\u00a78",
-                    "/wxshape mod " + row + " " + column + " " + modifier.getToken(), tooltip));
+            String label = modifier.getLabel();
+            String tooltip;
+            String command;
+            if (modifier.isOrdered()) {
+                // Ordered roles open a picker, so the firing order can be chosen
+                // by hand rather than only being assigned on placement.
+                int order = ShapePalette.orderOf(current, modifier.getToken());
+                if (on && order > 0) {
+                    label = label + order;
+                }
+                tooltip = "\u00a77:" + modifier.getToken() + "\n\u00a7f" + modifier.getDescription()
+                        + "\n\u00a78Click to " + (on ? "change or remove its number." : "pick its number.");
+                command = "/wxshape order " + row + " " + column + " " + modifier.getToken();
+            } else {
+                tooltip = "\u00a77:" + modifier.getToken() + "\n\u00a7f" + modifier.getDescription()
+                        + "\n\u00a78Click to " + (on ? "remove it from" : "add it to") + " this block.";
+                command = "/wxshape mod " + row + " " + column + " " + modifier.getToken();
+            }
+            mods.addExtra(button(" [" + label + "] ", on ? "\u00a7a" : "\u00a78", command, tooltip));
         }
         player.spigot().sendMessage(mods);
 
         TextComponent back = new TextComponent("");
         back.addExtra(button(" [Back to grid] ", "\u00a77", "/wxshape grid", "Leave this cell as it is."));
         player.spigot().sendMessage(back);
+    }
+
+    /**
+     * Lets the player pick the firing order for an ordered role on one cell.
+     *
+     * Blocks sharing a number fire together, so numbers already in use are
+     * highlighted rather than hidden - stacking several blocks on one step is a
+     * normal thing to want.
+     */
+    public static void renderOrderPicker(Player player, ShapeBuilderSession session, int row, int column, String modifier) {
+        ShapePalette.Modifier definition = ShapePalette.getModifier(modifier);
+        if (definition == null || !definition.isOrdered()) {
+            player.sendMessage(ERROR + "That role does not have a firing order.");
+            return;
+        }
+        String current = session.getCell(session.getCurrentLayer(), row, column);
+        if (current == null) {
+            player.sendMessage(ERROR + "That cell is not part of the grid.");
+            return;
+        }
+        int currentOrder = ShapePalette.orderOf(current, modifier);
+        String what = definition.getToken().equals(ShapePalette.MOD_WOOSH) ? "Woosh" : "Light";
+
+        player.sendMessage(HEADER + what + " order for row " + (row + 1) + ", column " + (column + 1)
+                + (currentOrder > 0 ? " \u00a78currently \u00a77#" + currentOrder : " \u00a78not set yet"));
+
+        java.util.Set<Integer> used = session.usedOrders(modifier);
+        TextComponent line = new TextComponent("");
+        for (int order = 1; order <= ShapePalette.MAX_ORDER; order++) {
+            boolean isCurrent = order == currentOrder;
+            int others = session.countAtOrder(modifier, order) - (isCurrent ? 1 : 0);
+            String colour = isCurrent ? "\u00a7a" : (used.contains(Integer.valueOf(order)) ? "\u00a7b" : "\u00a78");
+            String tooltip = "\u00a77" + definition.getToken() + "#" + order + "\n\u00a7f"
+                    + (others > 0
+                        ? others + " other block(s) already fire on step " + order + ". They all fire together."
+                        : "Nothing else is on step " + order + " yet.")
+                    + "\n\u00a78Steps run in ascending order.";
+            line.addExtra(button(" [" + definition.getLabel() + order + "] ", colour,
+                    "/wxshape setorder " + row + " " + column + " " + modifier + " " + order, tooltip));
+        }
+        player.spigot().sendMessage(line);
+
+        TextComponent controls = new TextComponent("");
+        if (currentOrder > 0) {
+            controls.addExtra(button(" [Remove] ", "\u00a7c", "/wxshape mod " + row + " " + column + " " + modifier,
+                    "Take this role off the block entirely."));
+        }
+        controls.addExtra(button(" [Back to cell] ", "\u00a77", "/wxshape cell " + row + " " + column,
+                "Leave the order as it is."));
+        player.spigot().sendMessage(controls);
+    }
+
+    /** Applies a hand-picked firing order and returns to the cell editor. */
+    public static void setModifierOrder(Player player, ShapeBuilderSession session, int row, int column, String modifier, int order) {
+        ShapePalette.Modifier definition = ShapePalette.getModifier(modifier);
+        if (definition == null || !definition.isOrdered()) {
+            player.sendMessage(ERROR + "That role does not have a firing order.");
+            return;
+        }
+        if (order < 1 || order > ShapePalette.MAX_ORDER) {
+            player.sendMessage(ERROR + "Pick an order between 1 and " + ShapePalette.MAX_ORDER + ".");
+            return;
+        }
+        String current = session.getCell(session.getCurrentLayer(), row, column);
+        if (current == null) {
+            return;
+        }
+        session.setCell(session.getCurrentLayer(), row, column, ShapePalette.setModifierOrder(current, modifier, order));
+        renderCellPalette(player, session, row, column);
     }
 
     /** Swaps a cell's base block, keeping whatever roles it already had. */
