@@ -838,15 +838,21 @@ public class Wormhole implements CommandExecutor, TabCompleter {
             boolean isSwitch = type == Material.LEVER || org.bukkit.Tag.BUTTONS.isTagged(type);
             if (!isSwitch) {
                 if (isVacant(type)) {
-                    // A missing DHD is how a gate is marked incoming-only, so
-                    // this is very often deliberate rather than damage. Putting
-                    // a lever back would quietly make the gate two-way again,
-                    // so it only happens on an explicit -force.
-                    report.notes.add("no DHD switch - gate is incoming-only" + (force ? ", restored as a lever" : ""));
-                    if (force) {
-                        dialLever.setType(Material.LEVER);
-                        applyWallSwitch(dialLever, gate);
-                        report.restored++;
+                    // A button needs the pillar behind it, or it pops straight
+                    // back off. Without that there is nothing useful to do here.
+                    org.bukkit.block.Block pillar = gate.getGateDialPillarBlock();
+                    boolean supported = pillar != null && !isVacant(pillar.getType());
+                    report.missing++;
+                    if (!supported) {
+                        report.notes.add("no DHD switch, and the pillar behind it is gone - rebuild the pillar first");
+                    } else {
+                        report.notes.add("no DHD switch"
+                                + (fix ? ", restored as a stone button - this gate can dial out again" : ""));
+                        if (fix) {
+                            dialLever.setType(Material.STONE_BUTTON);
+                            applyWallSwitch(dialLever, gate);
+                            report.restored++;
+                        }
                     }
                 } else {
                     report.occupied++;
