@@ -20,6 +20,8 @@ public class WXPermissions {
         LIST,
         LIST_ALL,
         LIST_SELF,
+        LIST_NETWORK,
+        LIST_PLAYER,
         TOP,
         CONFIG,
         GO,
@@ -56,6 +58,8 @@ public class WXPermissions {
                 case LIST:
                 case LIST_ALL:
                 case LIST_SELF:
+                case LIST_NETWORK:
+                case LIST_PLAYER:
                 case TOP:
                 case COMPASS:
                 case BUILD:
@@ -80,6 +84,8 @@ public class WXPermissions {
                         return SimplePermissionType.USE.checkPermission(player);
                     case LIST:
                     case LIST_ALL:
+                    case LIST_NETWORK:
+                    case LIST_PLAYER:
                     case TOP:
                         return SimplePermissionType.CONFIG.checkPermission(player) || SimplePermissionType.USE.checkPermission(player);
                     case LIST_SELF:
@@ -118,6 +124,10 @@ public class WXPermissions {
                 case LIST_ALL:
                 case TOP:
                     return ComplexPermissionType.LIST_ALL.checkPermission(player) || ComplexPermissionType.CONFIG.checkPermission(player);
+                case LIST_NETWORK:
+                    return ComplexPermissionType.LIST_NETWORK.checkPermission(player) || ComplexPermissionType.LIST_ALL.checkPermission(player) || ComplexPermissionType.CONFIG.checkPermission(player);
+                case LIST_PLAYER:
+                    return ComplexPermissionType.LIST_PLAYER.checkPermission(player) || ComplexPermissionType.LIST_ALL.checkPermission(player) || ComplexPermissionType.CONFIG.checkPermission(player);
                 case LIST_SELF:
                     return ComplexPermissionType.LIST_SELF.checkPermission(player) || ComplexPermissionType.LIST_ALL.checkPermission(player) || ComplexPermissionType.CONFIG.checkPermission(player);
                 case COMPASS:
@@ -162,8 +172,10 @@ public class WXPermissions {
                     return true;
                 case LIST:
                 case LIST_ALL:
+                case LIST_NETWORK:
+                case LIST_PLAYER:
                 case TOP:
-                    // Listing every gate on the server stays op-only.
+                    // Listing gates you do not own stays op-only.
                     return false;
                 default:
                     return false;
