@@ -427,6 +427,99 @@ public class StargateManager {
         return (HashMap) stargateNetworks;
     }
 
+    /**
+     * Every known network name, sorted alphabetically. Used by /wxlist network
+     * for both output and tab completion.
+     */
+    public static ArrayList<String> getAllNetworkNames() {
+        ArrayList<String> names = new ArrayList<>(getStargateNetworks().keySet());
+        java.util.Collections.sort(names, String.CASE_INSENSITIVE_ORDER);
+        return names;
+    }
+
+    /**
+     * Resolve a network by name, ignoring case, so players do not have to match
+     * the exact capitalisation used when the network was created.
+     */
+    public static StargateNetwork getStargateNetworkIgnoreCase(String name) {
+        if (name == null) {
+            return null;
+        }
+        StargateNetwork exact = getStargateNetwork(name);
+        if (exact != null) {
+            return exact;
+        }
+        for (Map.Entry<String, StargateNetwork> entry : getStargateNetworks().entrySet()) {
+            if (entry.getKey().equalsIgnoreCase(name)) {
+                return entry.getValue();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Gates belonging to the named network. Reads through the main gate list
+     * rather than the network's own list so a stale network entry for a gate
+     * that has since been removed cannot show up in the output.
+     */
+    public static ArrayList<Stargate> getGatesInNetwork(String networkName) {
+        ArrayList<Stargate> gates = new ArrayList<>();
+        if (networkName == null) {
+            return gates;
+        }
+        for (Stargate gate : getAllGates()) {
+            StargateNetwork net = gate.getGateNetwork();
+            if (net != null && net.getNetworkName() != null && net.getNetworkName().equalsIgnoreCase(networkName)) {
+                gates.add(gate);
+            }
+        }
+        return gates;
+    }
+
+    /**
+     * Gates owned by the named player. Owner names are compared ignoring case
+     * for the same reason gate names are elsewhere in the command layer.
+     */
+    public static ArrayList<Stargate> getGatesOwnedBy(String playerName) {
+        ArrayList<Stargate> gates = new ArrayList<>();
+        if (playerName == null) {
+            return gates;
+        }
+        for (Stargate gate : getAllGates()) {
+            String owner = gate.getGateOwner();
+            if (owner != null && owner.equalsIgnoreCase(playerName)) {
+                gates.add(gate);
+            }
+        }
+        return gates;
+    }
+
+    /**
+     * Distinct owner names across every gate, sorted, for /wxlist player tab
+     * completion. Offline owners are included: gates outlive sessions.
+     */
+    public static ArrayList<String> getAllGateOwnerNames() {
+        ArrayList<String> owners = new ArrayList<>();
+        for (Stargate gate : getAllGates()) {
+            String owner = gate.getGateOwner();
+            if (owner == null || owner.isEmpty()) {
+                continue;
+            }
+            boolean seen = false;
+            for (String known : owners) {
+                if (known.equalsIgnoreCase(owner)) {
+                    seen = true;
+                    break;
+                }
+            }
+            if (!seen) {
+                owners.add(owner);
+            }
+        }
+        java.util.Collections.sort(owners, String.CASE_INSENSITIVE_ORDER);
+        return owners;
+    }
+
     public static boolean isBlockInGate(Block block) {
         return isLocationInGate(block.getLocation());
     }
