@@ -30,7 +30,7 @@ import org.bukkit.entity.Player;
 public class Wormhole implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUBCOMMANDS = Arrays.asList(
-        "activate_timeout", "cooldown", "custom", "debug", "gateinfo",
+        "activate_timeout", "checkgates", "cooldown", "custom", "debug", "gateinfo",
         "irismaterial", "kickback_count", "legacyfixgate", "legacyfixgates",
         "lightmaterial", "min_gate_distance", "owner", "perm", "perms", "permissions",
         "portalmaterial", "redstone", "regenerate", "regen",
@@ -58,6 +58,7 @@ public class Wormhole implements CommandExecutor, TabCompleter {
 
         if (args.length == 2) {
             switch (sub) {
+                case "checkgates":
                 case "owner":
                 case "custom":
                 case "redstone":
@@ -70,7 +71,7 @@ public class Wormhole implements CommandExecutor, TabCompleter {
                 case "legacyfixgate": case "legacyfixgates":
                 case "updategate":
                     List<String> gateNames = getGateNames();
-                    if (sub.equals("custom") || sub.equals("legacyfixgate") || sub.equals("legacyfixgates") || sub.equals("updategate")) {
+                    if (sub.equals("custom") || sub.equals("checkgates") || sub.equals("legacyfixgate") || sub.equals("legacyfixgates") || sub.equals("updategate")) {
                         gateNames.add("-all");
                     }
                     return filterPrefix(gateNames, args[1]);
@@ -199,6 +200,7 @@ public class Wormhole implements CommandExecutor, TabCompleter {
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole toggle_transport | show_transport");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole kickback_count §8[n]");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole min_gate_distance §8[blocks]");
+        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole checkgates §8[gate|-all] [-fix]");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole gateinfo §8[gate]");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole legacyfixgate §8[gate] -f");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole updategate §8<gate|-all>");
@@ -283,6 +285,9 @@ public class Wormhole implements CommandExecutor, TabCompleter {
             }
             if (a[0].equalsIgnoreCase("legacyfixgate") || a[0].equalsIgnoreCase("legacyfixgates")) {
                 return doFixGates(sender, a);
+            }
+            if (a[0].equalsIgnoreCase("checkgates")) {
+                return doCheckGates(sender, a);
             }
             if (a[0].equalsIgnoreCase("gateinfo")) {
                 return doShowInfo(sender, a);
@@ -606,6 +611,125 @@ public class Wormhole implements CommandExecutor, TabCompleter {
         sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Syntax: /wormhole redstone <stargate> [boolean]");
         sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Valid boolean options are: true and false");
         return true;
+    }
+
+    /**
+     * /wormhole checkgates [gate|-all] [-fix]
+     *
+     * Walks the recorded structure blocks of one gate or every gate and reports
+     * any that no longer hold the material the gate was built from. With -fix
+     * the missing blocks are written back using that same recorded data, so a
+     * gate damaged by an explosion or a stray WorldEdit can be restored without
+     * rebuilding it by hand.
+     *
+     * Blocks in unloaded chunks are skipped rather than forcing chunk loads,
+     * and are reported separately so the output never implies a clean bill of
+     * health it did not actually verify.
+     */
+    private static boolean doCheckGates(CommandSender sender, String[] args) {
+        boolean fix = false;
+        String gateName = null;
+        for (int i = 1; i < args.length; i++) {
+            String arg = args[i];
+            if (arg.equalsIgnoreCase("-fix")) {
+                fix = true;
+            } else if (!arg.equalsIgnoreCase("-all")) {
+                gateName = arg;
+            }
+        }
+
+        ArrayList<Stargate> gates = new ArrayList<Stargate>();
+        if (gateName != null) {
+            Stargate single = StargateManager.getStargate(gateName);
+            if (single == null) {
+                sender.sendMessage(ConfigManager.MessageStrings.constructNameInvalid.toString() + "\"" + gateName + "\"");
+                return true;
+            }
+            gates.add(single);
+        } else {
+            gates.addAll(StargateManager.getAllGates());
+        }
+
+        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "Checking " + gates.size() + " gate(s)" + (fix ? " §8(repairing)" : "") + " §3::");
+
+        int healthy = 0;
+        int damaged = 0;
+        int repaired = 0;
+        int skipped = 0;
+
+        for (Stargate gate : gates) {
+            if (gate.getGateWorld() == null) {
+                sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§8" + gate.getGateName() + " §7- world not loaded, skipped");
+                skipped++;
+                continue;
+            }
+            GateStructureReport report = inspectGate(gate, fix);
+            if (report.unchecked > 0 && report.missing == 0) {
+                sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§8" + gate.getGateName() + " §7- " + report.unchecked + " block(s) in unloaded chunks, not checked");
+                skipped++;
+                continue;
+            }
+            if (report.missing == 0) {
+                healthy++;
+                continue;
+            }
+            damaged++;
+            if (fix) {
+                repaired += report.restored;
+                sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7" + gate.getGateName() + " §8- restored " + report.restored + " of " + report.missing + " missing block(s)");
+            } else {
+                sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7" + gate.getGateName() + " §8- " + report.missing + " missing block(s)");
+            }
+        }
+
+        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7" + healthy + " intact, " + damaged + " damaged, " + skipped + " skipped.");
+        if (damaged > 0 && fix) {
+            sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7Restored " + repaired + " block(s) in total.");
+        } else if (damaged > 0) {
+            sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§8Run /wormhole checkgates" + (gateName != null ? " " + gateName : " -all") + " -fix to rebuild them.");
+        }
+        return true;
+    }
+
+    /** Result of walking one gate's structure blocks. */
+    private static class GateStructureReport {
+        private int missing = 0;
+        private int restored = 0;
+        private int unchecked = 0;
+    }
+
+    private static GateStructureReport inspectGate(Stargate gate, boolean fix) {
+        GateStructureReport report = new GateStructureReport();
+        org.bukkit.World world = gate.getGateWorld();
+        Material structureMaterial = gate.getEffectiveStructureMaterial();
+        Material lightMaterial = gate.getEffectiveLightMaterial();
+
+        ArrayList<Location> structure = gate.getGateStructureBlocks();
+        if (structure == null) {
+            return report;
+        }
+        for (Location location : structure) {
+            if (location == null) {
+                continue;
+            }
+            if (!world.isChunkLoaded(location.getBlockX() >> 4, location.getBlockZ() >> 4)) {
+                report.unchecked++;
+                continue;
+            }
+            org.bukkit.block.Block block = world.getBlockAt(location.getBlockX(), location.getBlockY(), location.getBlockZ());
+            Material type = block.getType();
+            // A lit chevron is legitimately the light material while the gate is
+            // active, so that never counts as damage.
+            if (type == structureMaterial || type == lightMaterial) {
+                continue;
+            }
+            report.missing++;
+            if (fix) {
+                block.setType(structureMaterial);
+                report.restored++;
+            }
+        }
+        return report;
     }
 
     private static boolean doRegenerate(CommandSender sender, String[] args) {
