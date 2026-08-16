@@ -34,7 +34,8 @@ public class ConfigManager {
         WORMHOLE_MAX_GATE_NAME_LENGTH,
         WORMHOLE_MINIMUM_GATE_DISTANCE,
         PERMISSIONS_BACKEND,
-        ECONOMY_ENABLED
+        ECONOMY_ENABLED,
+        ALLOW_DESTINATION_GATE_SHUTDOWN
     }
 
 
@@ -193,6 +194,17 @@ public class ConfigManager {
 
     public static void setWormholeMinimumGateDistance(int minimumDistance) {
         setConfigValue(ConfigKeys.WORMHOLE_MINIMUM_GATE_DISTANCE, Integer.valueOf(minimumDistance));
+    }
+
+    /**
+     * When true, a player standing at the receiving end of an open wormhole may
+     * close it with the dial lever/button, instead of being told the gate is
+     * remotely active. Defaults to false, which preserves the original
+     * behaviour where only the dialling side can hang up.
+     */
+    public static boolean getAllowDestinationGateShutdown() {
+        Setting adgs = getConfigurations().get(ConfigKeys.ALLOW_DESTINATION_GATE_SHUTDOWN);
+        return adgs != null && adgs.getBooleanValue();
     }
 
     public static boolean getPermissionsSupportDisable() {
