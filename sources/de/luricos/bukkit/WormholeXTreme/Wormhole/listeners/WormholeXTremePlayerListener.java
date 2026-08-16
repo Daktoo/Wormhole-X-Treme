@@ -194,6 +194,15 @@ public class WormholeXTremePlayerListener implements Listener {
                 wormholePlayer.getProperties().setHasActivatedStargate(false);
                 currentGate.setLastUsedBy(wormholePlayer.getPlayer());
                 player.sendMessage(String.format(ConfigManager.MessageStrings.gateDeactivated.toString(), currentGate.getGateName() + " "));
+            } else if (ConfigManager.getAllowDestinationGateShutdown() && currentGate.getSourceGateName() != null
+                    && WXPermissions.checkPermission(player, currentGate, WXPermissions.PermissionType.USE)) {
+                // This gate is the receiving end of a wormhole somebody else
+                // dialled. shutdownStargate() cascades to the dialling gate, so
+                // closing from here tears down both ends cleanly.
+                currentGate.shutdownStargate(true);
+                player.sendMessage(String.format(ConfigManager.MessageStrings.gateShutdown.toString(), currentGate.getGateName() + " "));
+                wormholePlayer.getProperties().setHasShutdownGate(true);
+                return wormholePlayer;
             } else {
                 wormholePlayer.getProperties().setHasReceivedRemoteActiveMessage(true);
                 Stargate sourceGate = StargateManager.getStargate(currentGate.getSourceGateName());
@@ -362,7 +371,7 @@ public class WormholeXTremePlayerListener implements Listener {
             event.setCancelled(true);
             WXTLogger.prettyLog(Level.FINE, false,
                 "Cancelled vanilla portal teleport for player '" + event.getPlayer().getName()
-                + "' — block is part of a WormholeXTreme stargate.");
+                + "' - block is part of a WormholeXTreme stargate.");
         }
     }
 
@@ -373,7 +382,7 @@ public class WormholeXTremePlayerListener implements Listener {
             event.setCancelled(true);
             WXTLogger.prettyLog(Level.FINE, false,
                 "Cancelled vanilla portal teleport for entity '" + event.getEntity().getType()
-                + "' — block is part of a WormholeXTreme stargate.");
+                + "' - block is part of a WormholeXTreme stargate.");
         }
     }
 
