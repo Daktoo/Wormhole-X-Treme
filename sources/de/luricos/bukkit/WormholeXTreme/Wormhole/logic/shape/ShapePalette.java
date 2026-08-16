@@ -32,6 +32,9 @@ public class ShapePalette {
     public static final String MOD_IRIS_ACTIVATION = "IA";
     public static final String MOD_LIGHT = "L";
     public static final String MOD_WOOSH = "W";
+
+    /** Highest firing order the picker offers for :L and :W. */
+    public static final int MAX_ORDER = 10;
     /**
      * The redstone tokens are accepted both as a standalone base - [RD] - and
      * as a modifier on another block - [S:RS] - because the game's own layer
@@ -262,6 +265,44 @@ public class ShapePalette {
         }
         return build(baseOf(cell), result);
     }
+
+    /**
+     * Adds the modifier at a specific firing order, replacing whatever order it
+     * had. Used by the order picker, where the number is chosen rather than
+     * assigned automatically.
+     */
+    public static String setModifierOrder(String cell, String modifier, int order) {
+        List<String> result = new ArrayList<String>();
+        boolean replaced = false;
+        for (String raw : rawModifiers(cell)) {
+            if (stripOrder(raw).equalsIgnoreCase(modifier)) {
+                // Replaced in place rather than removed and re-appended, so a
+                // cell written as "S:L#1:EP" keeps that segment order and the
+                // file diff stays limited to the number that actually changed.
+                result.add(modifier + "#" + order);
+                replaced = true;
+                continue;
+            }
+            result.add(raw);
+        }
+        if (!replaced) {
+            result.add(modifier + "#" + order);
+        }
+        return build(baseOf(cell), result);
+    }
+
+    /** Removes the modifier from the cell if it is there. */
+    public static String removeModifier(String cell, String modifier) {
+        List<String> result = new ArrayList<String>();
+        for (String raw : rawModifiers(cell)) {
+            if (!stripOrder(raw).equalsIgnoreCase(modifier)) {
+                result.add(raw);
+            }
+        }
+        return build(baseOf(cell), result);
+    }
+
+
 
     /**
      * The grid label: the most significant modifier if the cell has one,
