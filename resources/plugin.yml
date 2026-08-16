@@ -15,7 +15,7 @@ commands:
     usage: /<command> <subcommand>
   wxlist:
     description: List stargates.
-    usage: /<command> [all|self]
+    usage: /<command> [all|self|network <network>|player <player>]
   wxtop:
     description: Show most visited stargates leaderboard.
     usage: /<command> [count]
@@ -42,7 +42,7 @@ commands:
     usage: /<command> <gateName|-all>
   wxgo:
     description: Teleport to specified wormhole.
-    usage: /<command> <GateName>
+    usage: /<command> <GateName> [IDC]
   wxreload:
     description: Reload WormholeXTreme.
     aliases: [wxre]
@@ -131,6 +131,12 @@ permissions:
   wormhole.list.self:
     description: Can list own wormhole gates with /wxlist self
     default: true
+  wormhole.list.network:
+    description: Can list the gates on a given network with /wxlist network <network>
+    default: op
+  wormhole.list.player:
+    description: Can list the gates owned by a given player with /wxlist player <player>
+    default: op
   wormhole.top:
     description: Can view the most visited stargates leaderboard with /wxtop
     default: true
