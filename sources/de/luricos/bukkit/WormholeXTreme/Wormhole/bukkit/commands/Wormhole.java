@@ -670,12 +670,12 @@ public class Wormhole implements CommandExecutor, TabCompleter {
                 continue;
             }
             GateStructureReport report = inspectGate(gate, fix, force);
-            if (report.unchecked > 0 && report.missing == 0 && report.occupied == 0) {
+            if (report.unchecked > 0 && report.missing == 0 && report.occupied == 0 && report.notes.isEmpty()) {
                 sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§8" + gate.getGateName() + " §7- " + report.unchecked + " block(s) in unloaded chunks, not checked");
                 skipped++;
                 continue;
             }
-            if (report.missing == 0 && report.occupied == 0) {
+            if (report.missing == 0 && report.occupied == 0 && report.notes.isEmpty()) {
                 healthy++;
                 continue;
             }
@@ -684,6 +684,9 @@ public class Wormhole implements CommandExecutor, TabCompleter {
             repaired += report.restored;
             StringBuilder line = new StringBuilder();
             line.append(ConfigManager.MessageStrings.normalHeader).append("§7").append(gate.getGateName()).append(" §8-");
+            if (report.missing == 0 && report.occupied == 0) {
+                line.append(" see below");
+            }
             if (report.missing > 0) {
                 line.append(" ").append(report.missing).append(" missing");
             }
@@ -694,6 +697,9 @@ public class Wormhole implements CommandExecutor, TabCompleter {
                 line.append(" §8(restored ").append(report.restored).append(")");
             }
             sender.sendMessage(line.toString());
+            for (String note : report.notes) {
+                sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "  §8- §7" + note);
+            }
         }
 
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7" + healthy + " intact, " + damaged + " damaged, " + skipped + " skipped.");
@@ -710,23 +716,25 @@ public class Wormhole implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    /** Result of walking one gate's structure blocks. */
+    /** Result of walking one gate's structure blocks and its fittings. */
     private static class GateStructureReport {
         private int missing = 0;
         private int occupied = 0;
         private int restored = 0;
         private int unchecked = 0;
+        private final ArrayList<String> notes = new ArrayList<String>();
     }
 
     /**
-     * Positions in the structure list that are not frame blocks.
+     * Positions in the structure list that are fittings rather than frame.
      *
      * The list doubles as the gate's block index, so it also holds the dial
-     * button, the name sign, the iris lever and the redstone blocks. Those are
-     * meant to be levers, signs and wire rather than gate material, and paving
-     * them over would destroy the gate's own controls.
+     * button, the signs, the iris lever and the redstone blocks. Those are
+     * meant to be switches, signs and wire rather than gate material, so they
+     * are checked separately by {@link #checkFittings} instead of being
+     * compared against the frame material.
      */
-    private static java.util.Set<String> furniturePositions(Stargate gate) {
+    private static java.util.Set<String> fittingPositions(Stargate gate) {
         java.util.Set<String> keys = new java.util.HashSet<String>();
         addPosition(keys, gate.getGateDialLeverBlock());
         addPosition(keys, gate.getGateIrisLeverBlock());
@@ -743,13 +751,17 @@ public class Wormhole implements CommandExecutor, TabCompleter {
 
     private static void addPosition(java.util.Set<String> keys, org.bukkit.block.Block block) {
         if (block != null) {
-            keys.add(block.getX() + "," + block.getY() + "," + block.getZ());
+            keys.add(positionKey(block.getX(), block.getY(), block.getZ()));
         }
     }
 
+    private static String positionKey(int x, int y, int z) {
+        return x + "," + y + "," + z;
+    }
+
     /**
-     * True when a position is empty enough to count as a missing frame block.
-     * Anything else that is standing there was put there by somebody, so it is
+     * True when a position is empty enough to count as a missing block.
+     * Anything else standing there was put there by somebody, so it is
      * reported rather than silently replaced.
      */
     private static boolean isVacant(Material type) {
@@ -762,7 +774,7 @@ public class Wormhole implements CommandExecutor, TabCompleter {
         org.bukkit.World world = gate.getGateWorld();
         Material structureMaterial = gate.getEffectiveStructureMaterial();
         Material lightMaterial = gate.getEffectiveLightMaterial();
-        java.util.Set<String> furniture = furniturePositions(gate);
+        java.util.Set<String> fittings = fittingPositions(gate);
 
         ArrayList<Location> structure = gate.getGateStructureBlocks();
         if (structure == null) {
@@ -772,7 +784,7 @@ public class Wormhole implements CommandExecutor, TabCompleter {
             if (location == null) {
                 continue;
             }
-            if (furniture.contains(location.getBlockX() + "," + location.getBlockY() + "," + location.getBlockZ())) {
+            if (fittings.contains(positionKey(location.getBlockX(), location.getBlockY(), location.getBlockZ()))) {
                 continue;
             }
             if (!world.isChunkLoaded(location.getBlockX() >> 4, location.getBlockZ() >> 4)) {
@@ -800,7 +812,155 @@ public class Wormhole implements CommandExecutor, TabCompleter {
                 report.restored++;
             }
         }
+
+        checkFittings(gate, report, fix, force);
+        if (report.restored > 0) {
+            // The setup methods append to the structure list unconditionally,
+            // so a restored fitting would otherwise be counted twice on the
+            // next run.
+            dedupeStructureBlocks(gate);
+        }
         return report;
+    }
+
+    /**
+     * Checks the switches and signs the gate needs to be usable, and puts back
+     * any that have gone missing.
+     *
+     * Restoration goes through the gate's own setup methods so the block data
+     * (facing, wall or floor mounting) and the sign text come out right, rather
+     * than being reconstructed here.
+     */
+    private static void checkFittings(Stargate gate, GateStructureReport report, boolean fix, boolean force) {
+        org.bukkit.block.Block dialLever = gate.getGateDialLeverBlock();
+        if (dialLever != null && isLoaded(gate, dialLever)) {
+            Material type = dialLever.getType();
+            boolean isSwitch = type == Material.LEVER || org.bukkit.Tag.BUTTONS.isTagged(type);
+            if (!isSwitch) {
+                if (isVacant(type)) {
+                    // A missing DHD is how a gate is marked incoming-only, so
+                    // this is very often deliberate rather than damage. Putting
+                    // a lever back would quietly make the gate two-way again,
+                    // so it only happens on an explicit -force.
+                    report.notes.add("no DHD switch - gate is incoming-only" + (force ? ", restored as a lever" : ""));
+                    if (force) {
+                        dialLever.setType(Material.LEVER);
+                        applyWallSwitch(dialLever, gate);
+                        report.restored++;
+                    }
+                } else {
+                    report.occupied++;
+                    report.notes.add("DHD position holds " + type + " instead of a lever or button");
+                }
+            }
+        }
+
+        org.bukkit.block.Block irisLever = gate.getGateIrisLeverBlock();
+        if (irisLever != null && isLoaded(gate, irisLever) && irisLever.getType() != Material.LEVER) {
+            if (isVacant(irisLever.getType())) {
+                report.missing++;
+                report.notes.add("iris lever missing" + (fix ? ", restored" : ""));
+                if (fix) {
+                    gate.setupIrisLever(true);
+                    report.restored++;
+                }
+            } else {
+                report.occupied++;
+                report.notes.add("iris lever position holds " + irisLever.getType());
+            }
+        }
+
+        if (gate.getGateNameBlockHolder() != null && gate.getGateFacing() != null) {
+            org.bukkit.block.Block nameSign = gate.getGateNameBlockHolder().getRelative(gate.getGateFacing());
+            if (isLoaded(gate, nameSign) && !org.bukkit.Tag.WALL_SIGNS.isTagged(nameSign.getType())) {
+                if (isVacant(nameSign.getType())) {
+                    report.missing++;
+                    report.notes.add("name sign missing" + (fix ? ", restored" : ""));
+                    if (fix) {
+                        gate.setupGateSign(true);
+                        report.restored++;
+                    }
+                } else {
+                    report.occupied++;
+                    report.notes.add("name sign position holds " + nameSign.getType());
+                }
+            }
+        }
+
+        org.bukkit.block.Block dialSign = gate.getGateDialSignBlock();
+        if (gate.isGateSignPowered() && dialSign != null && isLoaded(gate, dialSign)
+                && !org.bukkit.Tag.WALL_SIGNS.isTagged(dialSign.getType())) {
+            if (isVacant(dialSign.getType())) {
+                report.missing++;
+                report.notes.add("dial sign missing" + (fix ? ", restored" : ""));
+                if (fix) {
+                    gate.resetSign(true);
+                    report.restored++;
+                }
+            } else {
+                report.occupied++;
+                report.notes.add("dial sign position holds " + dialSign.getType());
+            }
+        }
+
+        boolean redstoneMissing = false;
+        redstoneMissing |= isMissingRedstone(gate, gate.getGateRedstoneDialActivationBlock(), Material.REDSTONE_WIRE, report, "redstone dial wire");
+        redstoneMissing |= isMissingRedstone(gate, gate.getGateRedstoneSignActivationBlock(), Material.REDSTONE_WIRE, report, "redstone sign wire");
+        redstoneMissing |= isMissingRedstone(gate, gate.getGateRedstoneGateActivatedBlock(), Material.LEVER, report, "redstone output lever");
+        if (redstoneMissing && fix) {
+            gate.setupRedstone(true);
+            report.restored++;
+        }
+    }
+
+    /** Records a missing or obstructed redstone fitting; true when restorable. */
+    private static boolean isMissingRedstone(Stargate gate, org.bukkit.block.Block block, Material expected,
+            GateStructureReport report, String label) {
+        if (block == null || !isLoaded(gate, block) || block.getType() == expected) {
+            return false;
+        }
+        if (!isVacant(block.getType())) {
+            report.occupied++;
+            report.notes.add(label + " position holds " + block.getType());
+            return false;
+        }
+        report.missing++;
+        report.notes.add(label + " missing");
+        return true;
+    }
+
+    private static void applyWallSwitch(org.bukkit.block.Block block, Stargate gate) {
+        if (gate.getGateFacing() == null) {
+            return;
+        }
+        org.bukkit.block.data.BlockData data = block.getBlockData();
+        if (data instanceof org.bukkit.block.data.type.Switch) {
+            org.bukkit.block.data.type.Switch element = (org.bukkit.block.data.type.Switch) data;
+            element.setFacing(gate.getGateFacing());
+            element.setFace(org.bukkit.block.data.type.Switch.Face.WALL);
+            block.setBlockData(element);
+        }
+    }
+
+    private static boolean isLoaded(Stargate gate, org.bukkit.block.Block block) {
+        org.bukkit.World world = gate.getGateWorld();
+        return world != null && world.isChunkLoaded(block.getX() >> 4, block.getZ() >> 4);
+    }
+
+    /** Removes repeated entries from the gate's block list, keeping order. */
+    private static void dedupeStructureBlocks(Stargate gate) {
+        ArrayList<Location> structure = gate.getGateStructureBlocks();
+        if (structure == null) {
+            return;
+        }
+        java.util.Set<String> seen = new java.util.HashSet<String>();
+        java.util.Iterator<Location> iterator = structure.iterator();
+        while (iterator.hasNext()) {
+            Location location = iterator.next();
+            if (location == null || !seen.add(positionKey(location.getBlockX(), location.getBlockY(), location.getBlockZ()))) {
+                iterator.remove();
+            }
+        }
     }
 
     private static boolean doRegenerate(CommandSender sender, String[] args) {
