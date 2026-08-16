@@ -170,18 +170,23 @@ public class WXPermissions {
         // fallback below needs a stargate to reason about, which the list
         // commands never have, so they failed outright and left /wxlist unusable
         // for everyone but ops.
+        // Permissions.txt decides what non-ops may do when nothing else is
+        // driving the decision. An "opped" node denies here and now; a
+        // "deopped" node passes the question on to the gate ownership rules
+        // below, so it grants access without handing out other people's gates.
+        Boolean fileAllows = PermissionsFile.allowsNonOp(permissionType);
+        if (fileAllows != null && !fileAllows.booleanValue()) {
+            return false;
+        }
         if (stargate == null) {
+            if (fileAllows != null) {
+                // Nothing gate-scoped left to check, so the file has the say.
+                return fileAllows.booleanValue();
+            }
             switch (permissionType) {
                 case LIST_SELF:
                     // Listing your own gates exposes nothing you did not build.
                     return true;
-                case LIST:
-                case LIST_ALL:
-                case LIST_NETWORK:
-                case LIST_PLAYER:
-                case TOP:
-                    // Listing gates you do not own stays op-only.
-                    return false;
                 default:
                     return false;
             }
