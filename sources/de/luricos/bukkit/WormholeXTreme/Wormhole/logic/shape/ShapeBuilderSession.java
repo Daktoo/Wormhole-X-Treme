@@ -228,6 +228,40 @@ public class ShapeBuilderSession {
         return highest + 1;
     }
 
+    /**
+     * Every firing order currently in use for the given modifier, across all
+     * layers, so the picker can show which numbers already have blocks on them.
+     */
+    public java.util.Set<Integer> usedOrders(String modifier) {
+        java.util.Set<Integer> orders = new java.util.TreeSet<Integer>();
+        for (String[][] grid : this.layers) {
+            for (String[] row : grid) {
+                for (String cell : row) {
+                    int order = ShapePalette.orderOf(cell, modifier);
+                    if (order > 0) {
+                        orders.add(Integer.valueOf(order));
+                    }
+                }
+            }
+        }
+        return orders;
+    }
+
+    /** How many cells sit on one firing order of the given modifier. */
+    public int countAtOrder(String modifier, int order) {
+        int count = 0;
+        for (String[][] grid : this.layers) {
+            for (String[] row : grid) {
+                for (String cell : row) {
+                    if (ShapePalette.orderOf(cell, modifier) == order) {
+                        count++;
+                    }
+                }
+            }
+        }
+        return count;
+    }
+
     /** How many cells across every layer carry the given modifier. */
     public int countModifier(String modifier) {
         int count = 0;
@@ -242,6 +276,7 @@ public class ShapeBuilderSession {
         }
         return count;
     }
+
 
     /** How many cells across every layer use the given base block. */
     public int countBase(String base) {
