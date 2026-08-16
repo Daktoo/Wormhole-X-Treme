@@ -29,6 +29,40 @@ public class WormholeXTremeBlockListener implements Listener {
                     stargate.setGateDialSign(null);
                     return false;
                 }
+                // Removing the pillar the DHD is mounted on pops the lever off
+                // with it. That leaves the gate without a dialler, which now
+                // means incoming-only rather than destroyed - the gate itself is
+                // still standing, so there is no reason to delete it.
+                if (stargate.getGateDialPillarBlock() != null && WorldUtils.isSameBlock(stargate.getGateDialPillarBlock(), block)) {
+                    player.sendMessage("Destroyed DHD pillar. This gate can now only receive incoming wormholes.");
+                    player.sendMessage("Rebuild the pillar and lever to dial out again.");
+                    stargate.setGateDialSign(null);
+                    return false;
+                }
+                // The name sign and its holder are cosmetic. Losing them should
+                // not take the gate with them either.
+                if (stargate.getGateNameBlockHolder() != null && WorldUtils.isSameBlock(stargate.getGateNameBlockHolder(), block)) {
+                    player.sendMessage("Destroyed gate name sign holder. The gate itself is unaffected.");
+                    player.sendMessage("Rebuild it and run /wormhole regenerate " + stargate.getGateName() + " to restore the sign.");
+                    return false;
+                }
+                if (stargate.getGateNameBlockHolder() != null && stargate.getGateFacing() != null
+                        && WorldUtils.isSameBlock(stargate.getGateNameBlockHolder().getRelative(stargate.getGateFacing()), block)) {
+                    player.sendMessage("Destroyed gate name sign. The gate itself is unaffected.");
+                    player.sendMessage("Run /wormhole regenerate " + stargate.getGateName() + " to put it back.");
+                    return false;
+                }
+                // Same for the iris lever: without it the iris can no longer be
+                // toggled, but the gate keeps working.
+                if (stargate.getGateIrisLeverBlock() != null && WorldUtils.isSameBlock(stargate.getGateIrisLeverBlock(), block)) {
+                    if (stargate.isGateIrisActive()) {
+                        stargate.toggleIrisActive(false);
+                    }
+                    StargateManager.removeBlockIndex(stargate.getGateIrisLeverBlock());
+                    player.sendMessage("Destroyed iris lever. The iris can no longer be toggled at this gate.");
+                    player.sendMessage("You can rebuild it later.");
+                    return false;
+                }
                 if (block.getType() == (stargate.isGateCustom() ? stargate.getGateCustomIrisMaterial() : stargate.getGateShape() != null ? stargate.getGateShape().getShapeIrisMaterial() : Material.STONE)) {
                     return true;
                 }
