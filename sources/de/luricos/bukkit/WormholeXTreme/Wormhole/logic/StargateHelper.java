@@ -480,6 +480,47 @@ public class StargateHelper {
         return getStargateShapes().containsKey(name.toLowerCase());
     }
 
+    /** The folder shape files live in. */
+    public static java.io.File getShapesDirectory() {
+        return new java.io.File("plugins/WormholeXTreme/GateShapes/");
+    }
+
+    /**
+     * Loads (or reloads) a single shape file into the in-memory shape list.
+     * Returns false and logs if the file could not be parsed, leaving whatever
+     * was already loaded untouched.
+     */
+    public static boolean loadShapeFile(java.io.File shapeFile) {
+        if (shapeFile == null || !shapeFile.exists()) {
+            return false;
+        }
+        try {
+            java.util.List<String> lines = java.nio.file.Files.readAllLines(shapeFile.toPath());
+            StargateShape shape = StargateShapeFactory.createShapeFromFile(lines.toArray(new String[0]));
+            if (shape == null || shape.getShapeName() == null) {
+                WXTLogger.prettyLog(java.util.logging.Level.WARNING, false, "Shape file has no usable name: " + shapeFile.getName());
+                return false;
+            }
+            stargateShapes.put(shape.getShapeName().toLowerCase(), shape);
+            WXTLogger.prettyLog(java.util.logging.Level.INFO, false, "Loaded shape: " + shape.getShapeName());
+            return true;
+        } catch (Exception e) {
+            WXTLogger.prettyLog(java.util.logging.Level.WARNING, false, "Failed to load shape " + shapeFile.getName() + ": " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Drops a shape from memory without touching its file. Gates already built
+     * from it keep working; the shape simply stops being offered to builders.
+     */
+    public static boolean unloadShape(String shapeName) {
+        if (shapeName == null) {
+            return false;
+        }
+        return stargateShapes.remove(shapeName.toLowerCase()) != null;
+    }
+
     public static void reloadShapes() {
         stargateShapes.clear();
         loadShapes();
@@ -506,7 +547,9 @@ public class StargateHelper {
 
 
         String[] bundled = {"Horizontal.shape", "HorizontalSignDial.shape",
-                            "Large.shape", "Minimal.shape", "Small.shape", "SmallSignDial.shape",
+                            "Large.shape", "LargeSignDial.shape",
+                            "Minimal.shape", "MinimalSignDial.shape",
+                            "Small.shape", "SmallSignDial.shape",
                             "Standard.shape", "StandardSignDial.shape"};
         for (String name : bundled) {
             java.io.File dest = new java.io.File(externalDir, name);
