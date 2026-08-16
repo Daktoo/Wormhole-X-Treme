@@ -33,6 +33,7 @@ import de.luricos.bukkit.WormholeXTreme.Wormhole.model.Stargate;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateDBManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.permissions.PermissionBackend;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.permissions.PermissionsFile;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.permissions.PermissionManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.permissions.backends.BukkitSupport;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.permissions.backends.VaultSupport;
@@ -73,6 +74,7 @@ public class WormholeXTreme extends JavaPlugin {
             this.blockPluginExecution = true;
         } else {
             StargateHelper.loadShapes();
+            PermissionsFile.load();
             WXTLogger.prettyLog(Level.INFO, true, "Load complete");
         }
     }
@@ -95,6 +97,7 @@ public class WormholeXTreme extends JavaPlugin {
             ConfigManager.setupConfigs(getDescription());
             WXTLogger.setLogLevel(ConfigManager.getLogLevel());
             StargateHelper.reloadShapes();
+            PermissionsFile.reload();
             if (ConfigManager.isEconomyEnabled()) {
                 EconomyManager.initialise(StargateHelper.getShapeNames());
             } else {
