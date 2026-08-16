@@ -15,6 +15,7 @@ import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.WXReload;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.WXRemove;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.WXTop;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.WXConvertDB;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.WXShape;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.WXStatus;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.Wormhole;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.config.ConfigManager;
@@ -25,6 +26,7 @@ import de.luricos.bukkit.WormholeXTreme.Wormhole.listeners.WormholeXTremeEntityL
 import de.luricos.bukkit.WormholeXTreme.Wormhole.listeners.WormholeXTremePlayerListener;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.listeners.WormholeXTremeRedstoneListener;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.listeners.WormholeXTremeServerListener;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.listeners.WormholeXTremeShapeListener;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.listeners.WormholeXTremeVehicleListener;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.StargateHelper;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.Stargate;
@@ -54,6 +56,7 @@ public class WormholeXTreme extends JavaPlugin {
     private static final WormholeXTremeVehicleListener vehicleListener = new WormholeXTremeVehicleListener();
     private static final WormholeXTremeEntityListener entityListener = new WormholeXTremeEntityListener();
     private static final WormholeXTremeServerListener serverListener = new WormholeXTremeServerListener();
+    private static final WormholeXTremeShapeListener shapeListener = new WormholeXTremeShapeListener();
     private static final WormholeXTremeRedstoneListener redstoneListener = new WormholeXTremeRedstoneListener();
     private static WorldHandler worldHandler = null;
     private static BukkitScheduler scheduler = null;
@@ -274,6 +277,10 @@ public class WormholeXTreme extends JavaPlugin {
         tp.getCommand("wxstatus").setExecutor(wxstatus);
         tp.getCommand("wxstatus").setTabCompleter(wxstatus);
 
+        WXShape wxshape = new WXShape();
+        tp.getCommand("wxshape").setExecutor(wxshape);
+        tp.getCommand("wxshape").setTabCompleter(wxshape);
+
         tp.getCommand("wxconvertdb").setExecutor(new WXConvertDB());
     }
 
@@ -288,6 +295,7 @@ public class WormholeXTreme extends JavaPlugin {
         Bukkit.getServer().getPluginManager().registerEvents(redstoneListener, wxt);
         Bukkit.getServer().getPluginManager().registerEvents(vehicleListener, wxt);
         Bukkit.getServer().getPluginManager().registerEvents(entityListener, wxt);
+        Bukkit.getServer().getPluginManager().registerEvents(shapeListener, wxt);
     }
 
     protected static void setScheduler(BukkitScheduler scheduler2) {
