@@ -326,6 +326,12 @@ public class Stargate {
 
     public boolean dialStargate(Stargate target, boolean force) {
         WXTLogger.prettyLog(Level.FINER, false, "Dialing Stargate: '" + target.getGateName() + "'; force:='" + force + "'");
+        if (!force && isGateOneSided()) {
+            // No DHD on this end: the gate can still be dialled *to*, but it
+            // cannot open a wormhole of its own.
+            WXTLogger.prettyLog(Level.FINE, false, "Refused dial from '" + getGateName() + "': gate has no DHD and is incoming-only.");
+            return false;
+        }
         if (!force && target.isGateInUse()) {
             WXTLogger.prettyLog(Level.FINE, false, "Refused dial from '" + getGateName() + "' to '" + target.getGateName()
                     + "': target is already engaged (source: '" + target.getSourceGateName() + "').");
@@ -674,6 +680,17 @@ public class Stargate {
             if (getGateLightingCurrentIteration() == 0) {
                 setGateLightsActive(true);
                 setGateChevronsLocked(false);
+                if (!hasStructureBlocksPresent()) {
+                    // The frame is gone - somebody removed it out of band, e.g.
+                    // with WorldEdit. Painting chevrons now would rebuild a gate
+                    // that no longer exists, so lock the chevrons straight away
+                    // instead. The wormhole still opens and can still be walked
+                    // through; there is simply nothing left to animate.
+                    WXTLogger.prettyLog(Level.FINE, false, "Gate '" + getGateName() + "' has no structure blocks left. Skipping chevron activation.");
+                    setGateChevronsLocked(true);
+                    setGateLightingCurrentIteration(0);
+                    return;
+                }
             } else if (!isGateLightsActive()) {
                 lightStargate(false);
                 setGateLightingCurrentIteration(0);
@@ -701,6 +718,12 @@ public class Stargate {
         WXTLogger.prettyLog(Level.FINE, false, "Cleanup lighting process for gate: '" + getGateName() + "'");
         setGateLightsActive(false);
         setGateChevronsLocked(false);
+        if (!hasStructureBlocksPresent()) {
+            // Same reasoning as the light-up path: do not put gate material back
+            // into the world for a gate that has been removed underneath us.
+            WXTLogger.prettyLog(Level.FINE, false, "Gate '" + getGateName() + "' has no structure blocks left. Skipping chevron cleanup.");
+            return;
+        }
         if (getGateLightBlocks() != null) {
             for (int i = 0; i < getGateLightBlocks().size(); i++) {
                 if (getGateLightBlocks().get(i) != null) {
@@ -711,6 +734,101 @@ public class Stargate {
                 }
             }
         }
+    }
+
+    /**
+     * Material this gate's frame is built from, honouring a per-gate custom
+     * override and falling back to the shape default.
+     */
+    public Material getEffectiveStructureMaterial() {
+        if (isGateCustom()) {
+            return getGateCustomStructureMaterial();
+        }
+        return getGateShape() != null ? getGateShape().getShapeStructureMaterial() : Material.OBSIDIAN;
+    }
+
+    /**
+     * Material this gate's chevrons light up with, honouring a per-gate custom
+     * override and falling back to the shape default.
+     */
+    public Material getEffectiveLightMaterial() {
+        if (isGateCustom()) {
+            return getGateCustomLightMaterial();
+        }
+        return getGateShape() != null ? getGateShape().getShapeLightMaterial() : Material.GLOWSTONE;
+    }
+
+    /**
+     * True when at least one recorded structure block still holds gate material.
+     *
+     * Used to tell an intact (or merely damaged) gate apart from one that has
+     * been wiped out wholesale, typically by WorldEdit. Blocks in unloaded
+     * chunks are skipped rather than forcing chunk loads; if nothing could be
+     * checked we assume the gate is fine, so an unloaded world never causes the
+     * plugin to treat every gate as missing.
+     */
+    public boolean hasStructureBlocksPresent() {
+        ArrayList<Location> structure = getGateStructureBlocks();
+        World world = getGateWorld();
+        if (structure == null || structure.isEmpty() || world == null) {
+            return true;
+        }
+        Material structureMaterial = getEffectiveStructureMaterial();
+        Material lightMaterial = getEffectiveLightMaterial();
+        int checked = 0;
+        for (Location location : structure) {
+            if (location == null) {
+                continue;
+            }
+            if (!world.isChunkLoaded(location.getBlockX() >> 4, location.getBlockZ() >> 4)) {
+                continue;
+            }
+            checked++;
+            Material type = world.getBlockAt(location.getBlockX(), location.getBlockY(), location.getBlockZ()).getType();
+            if (type == structureMaterial || type == lightMaterial) {
+                return true;
+            }
+        }
+        return checked == 0;
+    }
+
+    /**
+     * The block the DHD lever/button is mounted on. Levers on a gate face
+     * outwards, so the supporting pillar sits directly behind them.
+     *
+     * Returns null when the gate has no recorded dial lever or facing.
+     */
+    public Block getGateDialPillarBlock() {
+        Block lever = getGateDialLeverBlock();
+        if (lever == null || getGateFacing() == null) {
+            return null;
+        }
+        return lever.getRelative(getGateFacing().getOppositeFace());
+    }
+
+    /**
+     * True when this gate can only receive wormholes, never open one.
+     *
+     * Rather than storing a flag, this is read straight off the world: a gate
+     * whose DHD has been removed has nothing to dial with, so it becomes
+     * incoming-only until somebody puts the lever back. That means the state
+     * survives restarts for free and can never drift out of sync with what is
+     * actually built.
+     *
+     * Blocks in unloaded chunks are treated as intact, so an unloaded gate is
+     * never wrongly demoted to one-sided.
+     */
+    public boolean isGateOneSided() {
+        Block lever = getGateDialLeverBlock();
+        World world = getGateWorld();
+        if (lever == null || world == null) {
+            return false;
+        }
+        if (!world.isChunkLoaded(lever.getX() >> 4, lever.getZ() >> 4)) {
+            return false;
+        }
+        Material type = world.getBlockAt(lever.getX(), lever.getY(), lever.getZ()).getType();
+        return type != Material.LEVER && !org.bukkit.Tag.BUTTONS.isTagged(type);
     }
 
     public void resetSign(boolean teleportSign) {
