@@ -29,6 +29,8 @@ enum ComplexPermissionType {
     LIST("wormhole.list"),
     LIST_ALL("wormhole.list.all"),
     LIST_SELF("wormhole.list.self"),
+    LIST_NETWORK("wormhole.list.network"),
+    LIST_PLAYER("wormhole.list.player"),
     TOP("wormhole.top"),
     NETWORK_USE("wormhole.network.use."),
     NETWORK_BUILD("wormhole.network.build."),
