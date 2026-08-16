@@ -34,7 +34,8 @@ enum ComplexPermissionType {
     TOP("wormhole.top"),
     NETWORK_USE("wormhole.network.use."),
     NETWORK_BUILD("wormhole.network.build."),
-    GO("wormhole.go");
+    GO("wormhole.go"),
+    SHAPE("wormhole.shape");
 
     private final String complexPermissionNode;
     private static final Map<String, ComplexPermissionType> complexPermissionMap = new HashMap();
