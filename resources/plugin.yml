@@ -51,6 +51,9 @@ commands:
     description: Show system status.
     aliases: [wxs]
     usage: /<command> [all]
+  wxshape:
+    description: Create, edit and manage gate shapes in game.
+    usage: /<command> <create|edit|load|unload|remove> [shape]
   wxconvertdb:
     description: Convert a NovyXtreme stargatesList.json database into the WormholeXTreme database.
     usage: /<command>
@@ -151,6 +154,9 @@ permissions:
     children:
       wormhole.network.use: true
       wormhole.network.build: true
+  wormhole.shape:
+    description: Can create and manage gate shapes with /wxshape
+    default: op
   wormhole.go:
     description: Can teleport to a wormhole location
     default: op
