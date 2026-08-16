@@ -26,6 +26,7 @@ public class WXPermissions {
         CONFIG,
         GO,
         COMPASS,
+        SHAPE,
         USE_COOLDOWN_GROUP_ONE,
         USE_COOLDOWN_GROUP_TWO,
         USE_COOLDOWN_GROUP_THREE,
@@ -62,6 +63,7 @@ public class WXPermissions {
                 case LIST_PLAYER:
                 case TOP:
                 case COMPASS:
+                case SHAPE:
                 case BUILD:
                     return true;
                 default:
@@ -76,6 +78,7 @@ public class WXPermissions {
                         return SimplePermissionType.REMOVE.checkPermission(player) || SimplePermissionType.CONFIG.checkPermission(player);
                     case CONFIG:
                     case GO:
+                    case SHAPE:
                         return SimplePermissionType.CONFIG.checkPermission(player);
                     case SIGN:
                     case DIALER:
@@ -132,6 +135,8 @@ public class WXPermissions {
                     return ComplexPermissionType.LIST_SELF.checkPermission(player) || ComplexPermissionType.LIST_ALL.checkPermission(player) || ComplexPermissionType.CONFIG.checkPermission(player);
                 case COMPASS:
                     return ComplexPermissionType.USE_COMPASS.checkPermission(player);
+                case SHAPE:
+                    return ComplexPermissionType.SHAPE.checkPermission(player) || ComplexPermissionType.CONFIG.checkPermission(player);
                 case BUILD:
                     if (stargate != null) {
                         if (stargate.getGateNetwork() != null) {
