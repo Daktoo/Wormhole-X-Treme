@@ -108,6 +108,10 @@ public class WXShape implements CommandExecutor, TabCompleter {
                 return requireSession(player, session) && doSet(player, session, a);
             case "mod":
                 return requireSession(player, session) && doMod(player, session, a);
+            case "order":
+                return requireSession(player, session) && doOrder(player, session, a);
+            case "setorder":
+                return requireSession(player, session) && doSetOrder(player, session, a);
             case "layer":
                 return requireSession(player, session) && doLayer(player, session, a);
             case "addlayer":
@@ -205,6 +209,35 @@ public class WXShape implements CommandExecutor, TabCompleter {
             return true;
         }
         ShapeBuilderManager.toggleCellModifier(player, session, row.intValue(), column.intValue(), a[3]);
+        return true;
+    }
+
+    /** Opens the firing-order picker for an ordered role on one cell. */
+    private static boolean doOrder(Player player, ShapeBuilderSession session, String[] a) {
+        if (a.length < 4) {
+            return true;
+        }
+        Integer row = parseInt(a[1]);
+        Integer column = parseInt(a[2]);
+        if (row == null || column == null) {
+            return true;
+        }
+        ShapeBuilderManager.renderOrderPicker(player, session, row.intValue(), column.intValue(), a[3]);
+        return true;
+    }
+
+    /** Applies a number picked from that picker. */
+    private static boolean doSetOrder(Player player, ShapeBuilderSession session, String[] a) {
+        if (a.length < 5) {
+            return true;
+        }
+        Integer row = parseInt(a[1]);
+        Integer column = parseInt(a[2]);
+        Integer order = parseInt(a[4]);
+        if (row == null || column == null || order == null) {
+            return true;
+        }
+        ShapeBuilderManager.setModifierOrder(player, session, row.intValue(), column.intValue(), a[3], order.intValue());
         return true;
     }
 
