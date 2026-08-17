@@ -30,7 +30,7 @@ import org.bukkit.entity.Player;
 public class Wormhole implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUBCOMMANDS = Arrays.asList(
-        "activate_timeout", "checkgates", "cooldown", "custom", "debug", "gateinfo",
+        "activate_timeout", "cooldown", "custom", "debug", "gateinfo",
         "irismaterial", "kickback_count", "legacyfixgate", "legacyfixgates",
         "lightmaterial", "min_gate_distance", "owner", "perm", "perms", "permissions",
         "portalmaterial", "redstone", "regenerate", "regen",
@@ -58,7 +58,6 @@ public class Wormhole implements CommandExecutor, TabCompleter {
 
         if (args.length == 2) {
             switch (sub) {
-                case "checkgates":
                 case "owner":
                 case "custom":
                 case "redstone":
@@ -71,7 +70,8 @@ public class Wormhole implements CommandExecutor, TabCompleter {
                 case "legacyfixgate": case "legacyfixgates":
                 case "updategate":
                     List<String> gateNames = getGateNames();
-                    if (sub.equals("custom") || sub.equals("checkgates") || sub.equals("legacyfixgate") || sub.equals("legacyfixgates") || sub.equals("updategate")) {
+                    if (sub.equals("custom") || sub.equals("legacyfixgate") || sub.equals("legacyfixgates")
+                            || sub.equals("updategate") || sub.equals("regenerate") || sub.equals("regen")) {
                         gateNames.add("-all");
                     }
                     return filterPrefix(gateNames, args[1]);
@@ -189,7 +189,7 @@ public class Wormhole implements CommandExecutor, TabCompleter {
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole custom §8<gate|-all> [true|false]");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole redstone §8<gate> [true|false]");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole owner §8<gate> [player]");
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole regenerate|regen §8<gate>");
+        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole regenerate|regen §8<gate|-all>");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole portalmaterial §8<gate> [material]");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole irismaterial §8<gate> [material]");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole lightmaterial §8<gate> [GLOWSTONE|REDSTONE_ORE|SEA_LANTERN]");
@@ -200,7 +200,6 @@ public class Wormhole implements CommandExecutor, TabCompleter {
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole toggle_transport | show_transport");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole kickback_count §8[n]");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole min_gate_distance §8[blocks]");
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole checkgates §8[gate|-all] [-fix] [-force]");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole gateinfo §8[gate]");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole legacyfixgate §8[gate] -f");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole updategate §8<gate|-all>");
@@ -285,9 +284,6 @@ public class Wormhole implements CommandExecutor, TabCompleter {
             }
             if (a[0].equalsIgnoreCase("legacyfixgate") || a[0].equalsIgnoreCase("legacyfixgates")) {
                 return doFixGates(sender, a);
-            }
-            if (a[0].equalsIgnoreCase("checkgates")) {
-                return doCheckGates(sender, a);
             }
             if (a[0].equalsIgnoreCase("gateinfo")) {
                 return doShowInfo(sender, a);
@@ -614,385 +610,60 @@ public class Wormhole implements CommandExecutor, TabCompleter {
     }
 
     /**
-     * /wormhole checkgates [gate|-all] [-fix]
+     * /wormhole regenerate <gate|-all>
      *
-     * Walks the recorded structure blocks of one gate or every gate and reports
-     * any that no longer hold the material the gate was built from. With -fix
-     * the missing blocks are written back using that same recorded data, so a
-     * gate damaged by an explosion or a stray WorldEdit can be restored without
-     * rebuilding it by hand.
-     *
-     * Blocks in unloaded chunks are skipped rather than forcing chunk loads,
-     * and are reported separately so the output never implies a clean bill of
-     * health it did not actually verify.
+     * Rebuilds a gate's levers, signs and redstone from its stored data. With
+     * -all every gate is done in turn, skipping any whose world is not loaded
+     * rather than forcing those worlds open.
      */
-    private static boolean doCheckGates(CommandSender sender, String[] args) {
-        boolean fix = false;
-        boolean force = false;
-        String gateName = null;
-        for (int i = 1; i < args.length; i++) {
-            String arg = args[i];
-            if (arg.equalsIgnoreCase("-fix")) {
-                fix = true;
-            } else if (arg.equalsIgnoreCase("-force")) {
-                force = true;
-                fix = true;
-            } else if (!arg.equalsIgnoreCase("-all")) {
-                gateName = arg;
-            }
-        }
-
-        ArrayList<Stargate> gates = new ArrayList<Stargate>();
-        if (gateName != null) {
-            Stargate single = StargateManager.getStargate(gateName);
-            if (single == null) {
-                sender.sendMessage(ConfigManager.MessageStrings.constructNameInvalid.toString() + "\"" + gateName + "\"");
-                return true;
-            }
-            gates.add(single);
-        } else {
-            gates.addAll(StargateManager.getAllGates());
-        }
-
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "Checking " + gates.size() + " gate(s)"
-                + (force ? " §8(repairing, overwriting obstructions)" : fix ? " §8(repairing)" : "") + " §3::");
-
-        int healthy = 0;
-        int damaged = 0;
-        int repaired = 0;
-        int skipped = 0;
-        int obstructed = 0;
-
-        for (Stargate gate : gates) {
-            if (gate.getGateWorld() == null) {
-                sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§8" + gate.getGateName() + " §7- world not loaded, skipped");
-                skipped++;
-                continue;
-            }
-            GateStructureReport report = inspectGate(gate, fix, force);
-            if (report.unchecked > 0 && report.missing == 0 && report.occupied == 0 && report.notes.isEmpty()) {
-                sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§8" + gate.getGateName() + " §7- " + report.unchecked + " block(s) in unloaded chunks, not checked");
-                skipped++;
-                continue;
-            }
-            if (report.missing == 0 && report.occupied == 0 && report.notes.isEmpty()) {
-                healthy++;
-                continue;
-            }
-            damaged++;
-            obstructed += report.occupied;
-            repaired += report.restored;
-            StringBuilder line = new StringBuilder();
-            line.append(ConfigManager.MessageStrings.normalHeader).append("§7").append(gate.getGateName()).append(" §8-");
-            if (report.missing == 0 && report.occupied == 0) {
-                line.append(" see below");
-            }
-            if (report.missing > 0) {
-                line.append(" ").append(report.missing).append(" missing");
-            }
-            if (report.occupied > 0) {
-                line.append(report.missing > 0 ? "," : "").append(" ").append(report.occupied).append(" holding another block");
-            }
-            if (fix) {
-                line.append(" §8(restored ").append(report.restored).append(")");
-            }
-            sender.sendMessage(line.toString());
-            for (String note : report.notes) {
-                sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "  §8- §7" + note);
-            }
-        }
-
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7" + healthy + " intact, " + damaged + " damaged, " + skipped + " skipped.");
-        if (fix) {
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7Restored " + repaired + " block(s) in total.");
-        }
-        if (obstructed > 0 && !force) {
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§8" + obstructed
-                    + " frame position(s) hold a different block and were left alone. Add §7-force§8 to overwrite them.");
-        } else if (damaged > 0 && !fix) {
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§8Run /wormhole checkgates"
-                    + (gateName != null ? " " + gateName : " -all") + " -fix to rebuild them.");
-        }
-        return true;
-    }
-
-    /** Result of walking one gate's structure blocks and its fittings. */
-    private static class GateStructureReport {
-        private int missing = 0;
-        private int occupied = 0;
-        private int restored = 0;
-        private int unchecked = 0;
-        private final ArrayList<String> notes = new ArrayList<String>();
-    }
-
-    /**
-     * Positions in the structure list that are fittings rather than frame.
-     *
-     * The list doubles as the gate's block index, so it also holds the dial
-     * button, the signs, the iris lever and the redstone blocks. Those are
-     * meant to be switches, signs and wire rather than gate material, so they
-     * are checked separately by {@link #checkFittings} instead of being
-     * compared against the frame material.
-     */
-    private static java.util.Set<String> fittingPositions(Stargate gate) {
-        java.util.Set<String> keys = new java.util.HashSet<String>();
-        addPosition(keys, gate.getGateDialLeverBlock());
-        addPosition(keys, gate.getGateIrisLeverBlock());
-        addPosition(keys, gate.getGateDialSignBlock());
-        addPosition(keys, gate.getGateRedstoneDialActivationBlock());
-        addPosition(keys, gate.getGateRedstoneGateActivatedBlock());
-        addPosition(keys, gate.getGateRedstoneSignActivationBlock());
-        if (gate.getGateNameBlockHolder() != null && gate.getGateFacing() != null) {
-            // The holder itself is frame; the sign hanging off it is not.
-            addPosition(keys, gate.getGateNameBlockHolder().getRelative(gate.getGateFacing()));
-        }
-        return keys;
-    }
-
-    private static void addPosition(java.util.Set<String> keys, org.bukkit.block.Block block) {
-        if (block != null) {
-            keys.add(positionKey(block.getX(), block.getY(), block.getZ()));
-        }
-    }
-
-    private static String positionKey(int x, int y, int z) {
-        return x + "," + y + "," + z;
-    }
-
-    /**
-     * True when a position is empty enough to count as a missing block.
-     * Anything else standing there was put there by somebody, so it is
-     * reported rather than silently replaced.
-     */
-    private static boolean isVacant(Material type) {
-        return type.isAir() || type == Material.WATER || type == Material.LAVA
-                || type == Material.SNOW || type == Material.SHORT_GRASS || type == Material.TALL_GRASS;
-    }
-
-    private static GateStructureReport inspectGate(Stargate gate, boolean fix, boolean force) {
-        GateStructureReport report = new GateStructureReport();
-        org.bukkit.World world = gate.getGateWorld();
-        Material structureMaterial = gate.getEffectiveStructureMaterial();
-        Material lightMaterial = gate.getEffectiveLightMaterial();
-        java.util.Set<String> fittings = fittingPositions(gate);
-
-        ArrayList<Location> structure = gate.getGateStructureBlocks();
-        if (structure == null) {
-            return report;
-        }
-        for (Location location : structure) {
-            if (location == null) {
-                continue;
-            }
-            if (fittings.contains(positionKey(location.getBlockX(), location.getBlockY(), location.getBlockZ()))) {
-                continue;
-            }
-            if (!world.isChunkLoaded(location.getBlockX() >> 4, location.getBlockZ() >> 4)) {
-                report.unchecked++;
-                continue;
-            }
-            org.bukkit.block.Block block = world.getBlockAt(location.getBlockX(), location.getBlockY(), location.getBlockZ());
-            Material type = block.getType();
-            // A lit chevron is legitimately the light material while the gate
-            // is active, so that never counts as damage.
-            if (type == structureMaterial || type == lightMaterial) {
-                continue;
-            }
-            if (isVacant(type)) {
-                report.missing++;
-                if (fix) {
-                    block.setType(structureMaterial);
-                    report.restored++;
-                }
-                continue;
-            }
-            report.occupied++;
-            if (force) {
-                block.setType(structureMaterial);
-                report.restored++;
-            }
-        }
-
-        checkFittings(gate, report, fix, force);
-        if (report.restored > 0) {
-            // The setup methods append to the structure list unconditionally,
-            // so a restored fitting would otherwise be counted twice on the
-            // next run.
-            dedupeStructureBlocks(gate);
-        }
-        return report;
-    }
-
-    /**
-     * Checks the switches and signs the gate needs to be usable, and puts back
-     * any that have gone missing.
-     *
-     * Restoration goes through the gate's own setup methods so the block data
-     * (facing, wall or floor mounting) and the sign text come out right, rather
-     * than being reconstructed here.
-     */
-    private static void checkFittings(Stargate gate, GateStructureReport report, boolean fix, boolean force) {
-        org.bukkit.block.Block dialLever = gate.getGateDialLeverBlock();
-        if (dialLever != null && isLoaded(gate, dialLever)) {
-            Material type = dialLever.getType();
-            boolean isSwitch = type == Material.LEVER || org.bukkit.Tag.BUTTONS.isTagged(type);
-            if (!isSwitch) {
-                if (isVacant(type)) {
-                    // A button needs the pillar behind it, or it pops straight
-                    // back off. Without that there is nothing useful to do here.
-                    org.bukkit.block.Block pillar = gate.getGateDialPillarBlock();
-                    boolean supported = pillar != null && !isVacant(pillar.getType());
-                    report.missing++;
-                    if (!supported) {
-                        report.notes.add("no DHD switch, and the pillar behind it is gone - rebuild the pillar first");
-                    } else {
-                        report.notes.add("no DHD switch"
-                                + (fix ? ", restored as a stone button - this gate can dial out again" : ""));
-                        if (fix) {
-                            dialLever.setType(Material.STONE_BUTTON);
-                            applyWallSwitch(dialLever, gate);
-                            report.restored++;
-                        }
-                    }
-                } else {
-                    report.occupied++;
-                    report.notes.add("DHD position holds " + type + " instead of a lever or button");
-                }
-            }
-        }
-
-        org.bukkit.block.Block irisLever = gate.getGateIrisLeverBlock();
-        if (irisLever != null && isLoaded(gate, irisLever) && irisLever.getType() != Material.LEVER) {
-            if (isVacant(irisLever.getType())) {
-                report.missing++;
-                report.notes.add("iris lever missing" + (fix ? ", restored" : ""));
-                if (fix) {
-                    gate.setupIrisLever(true);
-                    report.restored++;
-                }
-            } else {
-                report.occupied++;
-                report.notes.add("iris lever position holds " + irisLever.getType());
-            }
-        }
-
-        if (gate.getGateNameBlockHolder() != null && gate.getGateFacing() != null) {
-            org.bukkit.block.Block nameSign = gate.getGateNameBlockHolder().getRelative(gate.getGateFacing());
-            if (isLoaded(gate, nameSign) && !org.bukkit.Tag.WALL_SIGNS.isTagged(nameSign.getType())) {
-                if (isVacant(nameSign.getType())) {
-                    report.missing++;
-                    report.notes.add("name sign missing" + (fix ? ", restored" : ""));
-                    if (fix) {
-                        gate.setupGateSign(true);
-                        report.restored++;
-                    }
-                } else {
-                    report.occupied++;
-                    report.notes.add("name sign position holds " + nameSign.getType());
-                }
-            }
-        }
-
-        org.bukkit.block.Block dialSign = gate.getGateDialSignBlock();
-        if (gate.isGateSignPowered() && dialSign != null && isLoaded(gate, dialSign)
-                && !org.bukkit.Tag.WALL_SIGNS.isTagged(dialSign.getType())) {
-            if (isVacant(dialSign.getType())) {
-                report.missing++;
-                report.notes.add("dial sign missing" + (fix ? ", restored" : ""));
-                if (fix) {
-                    gate.resetSign(true);
-                    report.restored++;
-                }
-            } else {
-                report.occupied++;
-                report.notes.add("dial sign position holds " + dialSign.getType());
-            }
-        }
-
-        boolean redstoneMissing = false;
-        redstoneMissing |= isMissingRedstone(gate, gate.getGateRedstoneDialActivationBlock(), Material.REDSTONE_WIRE, report, "redstone dial wire");
-        redstoneMissing |= isMissingRedstone(gate, gate.getGateRedstoneSignActivationBlock(), Material.REDSTONE_WIRE, report, "redstone sign wire");
-        redstoneMissing |= isMissingRedstone(gate, gate.getGateRedstoneGateActivatedBlock(), Material.LEVER, report, "redstone output lever");
-        if (redstoneMissing && fix) {
-            gate.setupRedstone(true);
-            report.restored++;
-        }
-    }
-
-    /** Records a missing or obstructed redstone fitting; true when restorable. */
-    private static boolean isMissingRedstone(Stargate gate, org.bukkit.block.Block block, Material expected,
-            GateStructureReport report, String label) {
-        if (block == null || !isLoaded(gate, block) || block.getType() == expected) {
-            return false;
-        }
-        if (!isVacant(block.getType())) {
-            report.occupied++;
-            report.notes.add(label + " position holds " + block.getType());
-            return false;
-        }
-        report.missing++;
-        report.notes.add(label + " missing");
-        return true;
-    }
-
-    private static void applyWallSwitch(org.bukkit.block.Block block, Stargate gate) {
-        if (gate.getGateFacing() == null) {
-            return;
-        }
-        org.bukkit.block.data.BlockData data = block.getBlockData();
-        if (data instanceof org.bukkit.block.data.type.Switch) {
-            org.bukkit.block.data.type.Switch element = (org.bukkit.block.data.type.Switch) data;
-            element.setFacing(gate.getGateFacing());
-            element.setFace(org.bukkit.block.data.type.Switch.Face.WALL);
-            block.setBlockData(element);
-        }
-    }
-
-    private static boolean isLoaded(Stargate gate, org.bukkit.block.Block block) {
-        org.bukkit.World world = gate.getGateWorld();
-        return world != null && world.isChunkLoaded(block.getX() >> 4, block.getZ() >> 4);
-    }
-
-    /** Removes repeated entries from the gate's block list, keeping order. */
-    private static void dedupeStructureBlocks(Stargate gate) {
-        ArrayList<Location> structure = gate.getGateStructureBlocks();
-        if (structure == null) {
-            return;
-        }
-        java.util.Set<String> seen = new java.util.HashSet<String>();
-        java.util.Iterator<Location> iterator = structure.iterator();
-        while (iterator.hasNext()) {
-            Location location = iterator.next();
-            if (location == null || !seen.add(positionKey(location.getBlockX(), location.getBlockY(), location.getBlockZ()))) {
-                iterator.remove();
-            }
-        }
-    }
-
     private static boolean doRegenerate(CommandSender sender, String[] args) {
         if (args.length >= 2) {
+            if (args[1].equalsIgnoreCase("-all")) {
+                ArrayList<Stargate> gates = StargateManager.getAllGates();
+                int regenerated = 0;
+                int skipped = 0;
+                for (Stargate gate : gates) {
+                    // A gate in an unloaded world has no blocks to rebuild, and
+                    // touching it would force the world open.
+                    if (gate.getGateWorld() == null) {
+                        skipped++;
+                        continue;
+                    }
+                    regenerateGate(gate);
+                    regenerated++;
+                }
+                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString()
+                        + "Regenerated " + regenerated + " gate(s)"
+                        + (skipped > 0 ? " §8(" + skipped + " skipped, world not loaded)" : ""));
+                return true;
+            }
             Stargate s = StargateManager.getStargate(args[1]);
             if (s != null) {
-                s.toggleDialLeverState(true);
-                if (s.getGateIrisDeactivationCode() != null && s.getGateIrisDeactivationCode().length() > 0) {
-                    s.setupIrisLever(true);
-                }
-                if (s.isGateRedstonePowered()) {
-                    s.setupRedstone(true);
-                }
-                s.setupGateSign(true);
-                if (s.isGateSignPowered()) {
-                    s.resetTeleportSign();
-                }
+                regenerateGate(s);
                 sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Regenerating Gate: " + s.getGateName());
                 return true;
             }
             sender.sendMessage(ConfigManager.MessageStrings.constructNameInvalid.toString() + "\"" + args[1] + "\"");
             return true;
         }
-        sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Syntax: /wormhole regenerate <stargate>");
+        sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Syntax: /wormhole regenerate <stargate|-all>");
         sender.sendMessage(ConfigManager.MessageStrings.gateNotSpecified.toString());
         return true;
+    }
+
+    /** Rebuilds one gate's levers, signs and redstone from its stored data. */
+    private static void regenerateGate(Stargate gate) {
+        gate.toggleDialLeverState(true);
+        if (gate.getGateIrisDeactivationCode() != null && gate.getGateIrisDeactivationCode().length() > 0) {
+            gate.setupIrisLever(true);
+        }
+        if (gate.isGateRedstonePowered()) {
+            gate.setupRedstone(true);
+        }
+        gate.setupGateSign(true);
+        if (gate.isGateSignPowered()) {
+            gate.resetTeleportSign();
+        }
     }
 
     private static boolean doRestrict(CommandSender sender, String[] args) {
