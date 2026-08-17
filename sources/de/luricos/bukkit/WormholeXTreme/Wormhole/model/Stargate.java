@@ -92,6 +92,14 @@ public class Stargate {
             clearWooshAnimation();
             return;
         }
+        if (!hasStructureBlocksPresent()) {
+            // Nothing left to animate around. Starting a woosh here would strew
+            // portal blocks through open air, and the animation would never
+            // reach its removing phase to take them back out again.
+            WXTLogger.prettyLog(Level.FINE, false, "Gate '" + getGateName() + "' has no structure blocks left. Skipping woosh animation.");
+            clearWooshAnimation();
+            return;
+        }
         Material wooshMaterial = isGateCustom() ? getGateCustomPortalMaterial() : getGateShape() != null ? getGateShape().getShapePortalMaterial() : Material.WATER;
         int wooshDepth = isGateCustom() ? getGateCustomWooshDepth() : getGateShape() != null ? getGateShape().getShapeWooshDepth() : 0;
         if (getGateWooshBlocks() != null && getGateWooshBlocks().size() > 0) {
@@ -433,7 +441,12 @@ public class Stargate {
     public void clearWooshAnimation() {
         for (Block b : getGateAnimatedBlocks()) {
             if (b != null) {
-                b.setType(Material.AIR);
+                // Guarded the same way the animation's own removing step is:
+                // if a woosh position overlaps a real gate block, blanking it
+                // would knock a hole in the frame.
+                if (!StargateManager.isBlockInGate(b)) {
+                    b.setType(Material.AIR);
+                }
                 StargateManager.getOpeningAnimationBlocks().remove(b.getLocation());
             }
         }
@@ -1220,6 +1233,10 @@ public class Stargate {
                 setGateRecentlyActive(true);
             }
             setGateActive(false);
+            // Cleared unconditionally: the woosh normally tidies up as its own
+            // animation winds down, so anything that interrupts that chain used
+            // to leave portal blocks hanging in the air after the gate closed.
+            clearWooshAnimation();
             lightStargate(false);
             setWormholeEstablished(false);
             setSourceGateName(null);
