@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
@@ -32,6 +33,7 @@ public class EconomyManager {
     private static Method vaultHas = null;
     private static Method vaultWithdraw = null;
     private static Method vaultIsSuccess = null;
+    private static boolean vaultUsesName = false;
 
     private static final Map<String, Double> shapePrices = new LinkedHashMap<>();
 
@@ -42,6 +44,7 @@ public class EconomyManager {
         vaultHas = null;
         vaultWithdraw = null;
         vaultIsSuccess = null;
+        vaultUsesName = false;
 
         if (tryHookVault()) {
             detectedPlugin = "Vault";
@@ -86,8 +89,15 @@ public class EconomyManager {
             }
             Method getProvider = rsp.getClass().getMethod("getProvider");
             vaultEconomy = getProvider.invoke(rsp);
-            vaultHas = economyClass.getMethod("has", Player.class, double.class);
-            vaultWithdraw = economyClass.getMethod("withdrawPlayer", Player.class, double.class);
+            try {
+                vaultHas = economyClass.getMethod("has", OfflinePlayer.class, double.class);
+                vaultWithdraw = economyClass.getMethod("withdrawPlayer", OfflinePlayer.class, double.class);
+                vaultUsesName = false;
+            } catch (NoSuchMethodException nsme) {
+                vaultHas = economyClass.getMethod("has", String.class, double.class);
+                vaultWithdraw = economyClass.getMethod("withdrawPlayer", String.class, double.class);
+                vaultUsesName = true;
+            }
             Class<?> responseClass = Class.forName("net.milkbowl.vault.economy.EconomyResponse");
             vaultIsSuccess = responseClass.getMethod("transactionSuccess");
             WXTLogger.prettyLog(Level.INFO, false,
@@ -200,13 +210,13 @@ public class EconomyManager {
                 "[Economy] Charging " + player.getName() + " " + price
                 + " for shape '" + shapeName + "' via " + detectedPlugin + ".");
 
+        if (vaultEconomy != null && vaultHas != null && vaultWithdraw != null) {
+            return chargeViaVaultApi(player, shapeName, price);
+        }
+
         ChargeResult staticResult = chargeViaEconomyStaticApi(player, shapeName, price);
         if (staticResult != ChargeResult.API_UNAVAILABLE) {
             return staticResult == ChargeResult.SUCCESS;
-        }
-
-        if (vaultEconomy != null && vaultHas != null && vaultWithdraw != null) {
-            return chargeViaVaultApi(player, shapeName, price);
         }
 
         if (chargeViaPluginApi(player, shapeName, price)) {
@@ -485,7 +495,6 @@ public class EconomyManager {
             } catch (Exception ignored) {
             }
         }
-        // Try common field names that may hold an API object (plugin-specific)
         for (String fieldName : new String[]{"economy", "api", "economyApi", "economyManager"}) {
             try {
                 java.lang.reflect.Field f = economyPlugin.getClass().getDeclaredField(fieldName);
@@ -612,7 +621,8 @@ public class EconomyManager {
 
     private static boolean chargeViaVaultApi(Player player, String shapeName, double price) {
         try {
-            boolean hasEnough = (boolean) vaultHas.invoke(vaultEconomy, player, price);
+            Object subject = vaultUsesName ? player.getName() : player;
+            boolean hasEnough = (boolean) vaultHas.invoke(vaultEconomy, subject, price);
             if (!hasEnough) {
                 player.sendMessage(
                         "§3:: §5error §3:: §7You do not have enough money to build this stargate. "
@@ -622,7 +632,7 @@ public class EconomyManager {
                         + " for '" + shapeName + "'.");
                 return false;
             }
-            Object response = vaultWithdraw.invoke(vaultEconomy, player, price);
+            Object response = vaultWithdraw.invoke(vaultEconomy, subject, price);
             boolean success = (boolean) vaultIsSuccess.invoke(response);
             if (success) {
                 player.sendMessage(
