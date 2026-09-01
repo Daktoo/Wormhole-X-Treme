@@ -3,6 +3,9 @@ package de.luricos.bukkit.WormholeXTreme.Wormhole.model;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.WormholeXTreme;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.config.ConfigManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.economy.EconomyManager;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.events.StargateCreatedEvent;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.events.StargateEvents;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.events.StargateRemovedEvent;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.StargateUpdateRunnable;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.player.WormholePlayerManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.utils.WXTLogger;
@@ -114,6 +117,13 @@ public class StargateManager {
     }
 
     public static void addStargate(Stargate s) {
+        addStargate(s, StargateCreatedEvent.Cause.BUILT);
+    }
+
+    public static void addStargate(Stargate s, StargateCreatedEvent.Cause cause) {
+        if (s == null) {
+            return;
+        }
         getStargateList().put(s.getGateName(), s);
         for (Location b : s.getGateStructureBlocks()) {
             getAllGateBlocks().put(b, s);
@@ -126,6 +136,9 @@ public class StargateManager {
         if (s.getGateNetwork() != null) {
             addGateToNetwork(s, s.getGateNetwork().getNetworkName());
         }
+        // Fired last, so listeners see a gate that is fully indexed and
+        // network-registered rather than one that is halfway through setup.
+        StargateEvents.fire(new StargateCreatedEvent(s, cause));
     }
 
     public static StargateNetwork addStargateNetwork(String networkName) {
@@ -602,6 +615,9 @@ public class StargateManager {
         // and hands it back out to the next player who clicks that block.
         getAllGateBlocks().values().removeIf(indexed -> indexed == s
                 || (indexed != null && gateName != null && gateName.equals(indexed.getGateName())));
+        // Name is passed separately: teardown above can clear fields on the
+        // Stargate, so listeners cannot rely on getGateName() still answering.
+        StargateEvents.fire(new StargateRemovedEvent(s, gateName));
     }
 
     public static Stargate getStargateByPlayer(Player player) {

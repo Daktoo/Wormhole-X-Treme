@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.config.ConfigManager;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.events.StargateCreatedEvent;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.StargateHelper;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.Stargate;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateDBManager;
@@ -159,7 +160,7 @@ public class WXConvertDB implements CommandExecutor {
             StargateManager.addGateToNetwork(s, "Public");
             s.setGateNetwork(StargateManager.getStargateNetwork("Public"));
 
-            StargateManager.addStargate(s);
+            StargateManager.addStargate(s, StargateCreatedEvent.Cause.IMPORTED);
             for (Location loc : s.getGateStructureBlocks()) {
                 StargateManager.addBlockIndex(world.getBlockAt(loc), s);
             }

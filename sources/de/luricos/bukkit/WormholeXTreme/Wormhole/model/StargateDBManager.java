@@ -1,5 +1,6 @@
 package de.luricos.bukkit.WormholeXTreme.Wormhole.model;
 
+import de.luricos.bukkit.WormholeXTreme.Wormhole.events.StargateCreatedEvent;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.WormholeXTreme;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.config.ConfigManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.StargateHelper;
@@ -216,7 +217,7 @@ public class StargateDBManager {
                                 }
                             }
                         }
-                        StargateManager.addStargate(s);
+                        StargateManager.addStargate(s, StargateCreatedEvent.Cause.LOADED);
                         WXTLogger.prettyLog(Level.FINE, false, "Loading Stargate: '" + s.getGateName() + "', GateFace: '" + s.getGateFacing().name() + "' from DB");
                     } else {
                         WXTLogger.prettyLog(Level.WARNING, true, "Failed to load Stargate '" + sn + "' from DB.");
