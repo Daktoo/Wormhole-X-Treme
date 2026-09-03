@@ -1,0 +1,16 @@
+-- MySQL/MariaDB schema. Kept separate from the SQLite set because IDENTITY
+-- and untyped BINARY are not valid here, and Key is a reserved word.
+CREATE TABLE IF NOT EXISTS Stargates
+(
+	Id INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	Name VARCHAR(128),
+	GateData LONGBLOB,
+	CONSTRAINT UNIQUE_SNAME UNIQUE (Name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS VersionInfo
+(
+	Version INTEGER
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO VersionInfo VALUES (1);
