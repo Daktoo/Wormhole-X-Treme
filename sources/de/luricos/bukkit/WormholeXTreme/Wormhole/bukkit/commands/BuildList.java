@@ -17,7 +17,7 @@ public class BuildList implements CommandExecutor {
         }
         int gateID = 1;
         StringBuilder shapeNames = new StringBuilder();
-        for (String shapeName : StargateHelper.getShapeNames()) {
+        for (String shapeName : StargateHelper.getEnabledShapeNames()) {
             shapeNames.append(ChatColor.GREEN + "(" + gateID + ")").append(ChatColor.GRAY + shapeName).append(", ");
             gateID++;
         }
