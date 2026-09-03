@@ -3,6 +3,8 @@ Name=SmallSignDial
 # Version 2 of shape files allows for many new things.
 # 3D gates, new format for blocks, woosh and light order etc
 Version=2
+# FALSE stops this shape being used to build gates. Survives restarts.
+ENABLED=FALSE
 
 # GateShape now needs "Layer" lines
 # Each Layer requires a #number= and then a newline.
