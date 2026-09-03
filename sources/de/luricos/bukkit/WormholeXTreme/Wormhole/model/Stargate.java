@@ -65,6 +65,7 @@ public class Stargate {
     private boolean gateIrisActive = false;
     private boolean gateIrisDefaultActive = false;
     private int gateAnimationStep3D = 1;
+    private int gateWooshTaskId = -1;
     private int gateAnimationStep2D = 0;
     private boolean gateAnimationRemoving = false;
     private int gateLightingCurrentIteration = 0;
@@ -110,7 +111,7 @@ public class Stargate {
                         Block b = getGateWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ());
                         getGateAnimatedBlocks().add(b);
                         StargateManager.getOpeningAnimationBlocks().put(l, b);
-                        b.setType(wooshMaterial);
+                        b.setType(wooshMaterial, false);
                         
                         if (wooshMaterial == Material.NETHER_PORTAL) {
                             org.bukkit.block.data.BlockData blockData = b.getBlockData();
@@ -132,7 +133,7 @@ public class Stargate {
                 } else {
                     setGateAnimationStep3D(getGateAnimationStep3D() + 1);
                 }
-                WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(this, StargateUpdateRunnable.ActionToTake.ANIMATE_WOOSH), isGateCustom() ? getGateCustomWooshTicks() : getGateShape() != null ? getGateShape().getShapeWooshTicks() : 2L);
+                scheduleWooshStep(isGateCustom() ? getGateCustomWooshTicks() : getGateShape() != null ? getGateShape().getShapeWooshTicks() : 2L);
                 return;
             }
             if (wooshBlockStep != null) {
@@ -141,7 +142,7 @@ public class Stargate {
                     StargateManager.getOpeningAnimationBlocks().remove(loc);
                     getGateAnimatedBlocks().remove(b2);
                     if (!StargateManager.isBlockInGate(b2)) {
-                        b2.setType(Material.AIR);
+                        b2.setType(Material.AIR, false);
                     }
                 }
                 WXTLogger.prettyLog(Level.FINER, false, getGateName() + " Woosh Removing: " + getGateAnimationStep3D() + " Woosh Block Size: " + wooshBlockStep.size());
@@ -155,13 +156,13 @@ public class Stargate {
                 return;
             }
             setGateAnimationStep3D(getGateAnimationStep3D() - 1);
-            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(this, StargateUpdateRunnable.ActionToTake.ANIMATE_WOOSH), isGateCustom() ? getGateCustomWooshTicks() : getGateShape() != null ? getGateShape().getShapeWooshTicks() : 2L);
+            scheduleWooshStep(isGateCustom() ? getGateCustomWooshTicks() : getGateShape() != null ? getGateShape().getShapeWooshTicks() : 2L);
             return;
         }
         if (getGateAnimationStep2D() == 0 && wooshDepth > 0) {
             for (Location block : getGatePortalBlocks()) {
                 Block r = getGateWorld().getBlockAt(block.getBlockX(), block.getBlockY(), block.getBlockZ()).getRelative(getGateFacing());
-                r.setType(wooshMaterial);
+                r.setType(wooshMaterial, false);
                 
                 if (wooshMaterial == Material.NETHER_PORTAL) {
                     org.bukkit.block.data.BlockData blockData = r.getBlockData();
@@ -180,7 +181,7 @@ public class Stargate {
                 StargateManager.getOpeningAnimationBlocks().put(r.getLocation(), r);
             }
             setGateAnimationStep2D(getGateAnimationStep2D() + 1);
-            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(this, StargateUpdateRunnable.ActionToTake.ANIMATE_WOOSH), 4L);
+            scheduleWooshStep(4L);
             return;
         }
         if (getGateAnimationStep2D() < wooshDepth) {
@@ -188,7 +189,7 @@ public class Stargate {
             int start = getGatePortalBlocks().size();
             for (int i = size - start; i < size; i++) {
                 Block r2 = getGateAnimatedBlocks().get(i).getRelative(getGateFacing());
-                r2.setType(wooshMaterial);
+                r2.setType(wooshMaterial, false);
                 
                 if (wooshMaterial == Material.NETHER_PORTAL) {
                     org.bukkit.block.data.BlockData blockData = r2.getBlockData();
@@ -208,10 +209,10 @@ public class Stargate {
             }
             setGateAnimationStep2D(getGateAnimationStep2D() + 1);
             if (getGateAnimationStep2D() == wooshDepth) {
-                WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(this, StargateUpdateRunnable.ActionToTake.ANIMATE_WOOSH), 8L);
+                scheduleWooshStep(8L);
                 return;
             } else {
-                WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(this, StargateUpdateRunnable.ActionToTake.ANIMATE_WOOSH), 4L);
+                scheduleWooshStep(4L);
                 return;
             }
         }
@@ -220,14 +221,14 @@ public class Stargate {
                 int index = getGateAnimatedBlocks().size() - 1;
                 if (index >= 0) {
                     Block b3 = getGateAnimatedBlocks().get(index);
-                    b3.setType(Material.AIR);
+                    b3.setType(Material.AIR, false);
                     getGateAnimatedBlocks().remove(index);
                     StargateManager.getOpeningAnimationBlocks().remove(b3.getLocation());
                 }
             }
             if (getGateAnimationStep2D() < (wooshDepth * 2) - 1) {
                 setGateAnimationStep2D(getGateAnimationStep2D() + 1);
-                WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(this, StargateUpdateRunnable.ActionToTake.ANIMATE_WOOSH), 3L);
+                scheduleWooshStep(3L);
             } else {
                 setGateAnimationStep2D(0);
                 if (isGateActive()) {
@@ -391,8 +392,8 @@ public class Stargate {
             setWormholeEstablished(true);
             getGateTarget().setWormholeEstablished(true);
             WXTLogger.prettyLog(Level.FINER, false, "Chevrons locked on both sides. Starting thread ANIMATE_WOOSH.");
-            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(this, StargateUpdateRunnable.ActionToTake.ANIMATE_WOOSH), 1L);
-            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(getGateTarget(), StargateUpdateRunnable.ActionToTake.ANIMATE_WOOSH), 1L);
+            scheduleWooshStep(1L);
+            getGateTarget().scheduleWooshStep(1L);
             return;
         }
         WXTLogger.prettyLog(Level.FINER, false, "Chevrons where not locked on both sides. Restarting thread.");
@@ -402,7 +403,7 @@ public class Stargate {
     public void fillGateInterior(Material material) {
         for (Location loc : getGatePortalBlocks()) {
             Block blk = getGateWorld().getBlockAt(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
-            blk.setType(material);
+            blk.setType(material, false);
             
        
             if (material == Material.NETHER_PORTAL) {
@@ -438,16 +439,48 @@ public class Stargate {
         return this.gateAnimatedBlocks;
     }
 
+    /**
+     * Queues the next step of the woosh, replacing any step already queued.
+     *
+     * Without this the chain could not be stopped: shutting a gate down left
+     * its pending step in the scheduler, and re-dialling before that step fired
+     * started a second chain running alongside it. The two would then take
+     * turns adding and removing out of order.
+     */
+    void scheduleWooshStep(long delay) {
+        cancelWooshStep();
+        setGateWooshTaskId(WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), new StargateUpdateRunnable(this, StargateUpdateRunnable.ActionToTake.ANIMATE_WOOSH), delay));
+    }
+
+    private void cancelWooshStep() {
+        if (getGateWooshTaskId() > 0) {
+            WormholeXTreme.getScheduler().cancelTask(getGateWooshTaskId());
+            setGateWooshTaskId(-1);
+        }
+    }
+
+    private int getGateWooshTaskId() {
+        return this.gateWooshTaskId;
+    }
+
+    private void setGateWooshTaskId(int gateWooshTaskId) {
+        this.gateWooshTaskId = gateWooshTaskId;
+    }
+
     public void clearWooshAnimation() {
+        cancelWooshStep();
         for (Block b : getGateAnimatedBlocks()) {
             if (b != null) {
-                // Guarded the same way the animation's own removing step is:
-                // if a woosh position overlaps a real gate block, blanking it
-                // would knock a hole in the frame.
-                if (!StargateManager.isBlockInGate(b)) {
-                    b.setType(Material.AIR);
-                }
+                // Deregister first, then decide. isBlockInGate() counts the
+                // opening-animation blocks as gate blocks, so checking before
+                // the remove meant this always saw its own woosh block as part
+                // of the gate and skipped clearing it. Every interrupted woosh
+                // therefore left its water standing, and deregistering it in
+                // the next line freed that water to flow.
                 StargateManager.getOpeningAnimationBlocks().remove(b.getLocation());
+                if (!StargateManager.isBlockInGate(b)) {
+                    b.setType(Material.AIR, false);
+                }
             }
         }
         getGateAnimatedBlocks().clear();
