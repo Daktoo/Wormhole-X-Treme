@@ -35,21 +35,33 @@ public class StargateDBManager {
 
     private static void connectDB() {
         try {
-            Class.forName("org.sqlite.JDBC");
-            try {
-                if (wormholeSQLConnection == null || wormholeSQLConnection.isClosed()) {
-                    setWormholeSQLConnection(DriverManager.getConnection("jdbc:sqlite:./plugins/WormholeXTreme/WormholeXTremeDB/WormholeXTreme.sqlite", "sa", ""));
-                    wormholeSQLConnection.setAutoCommit(true);
-                } else {
-                    WXTLogger.prettyLog(Level.SEVERE, false, "WormholeDB already connected.");
-                }
-            } catch (SQLException e) {
-                WXTLogger.prettyLog(Level.SEVERE, false, "Failed to intialized internal DB. Stargates will not be saved: " + e.getMessage());
+            if (wormholeSQLConnection == null || wormholeSQLConnection.isClosed()) {
+                setWormholeSQLConnection(StargateDBConnector.open());
+                clearPreparedStatements();
+                WXTLogger.prettyLog(Level.INFO, false, "Connected to " + StargateDBConnector.describe() + ".");
+            } else {
+                WXTLogger.prettyLog(Level.SEVERE, false, "WormholeDB already connected.");
             }
-        } catch (Exception e2) {
-            WXTLogger.prettyLog(Level.SEVERE, false, "ERROR: failed to load SQLITE JDBC driver.");
-            e2.printStackTrace();
+        } catch (SQLException e) {
+            WXTLogger.prettyLog(Level.SEVERE, false, "Failed to connect to " + StargateDBConnector.describe()
+                    + ". Stargates will not be saved: " + e.getMessage());
         }
+    }
+
+    /**
+     * Statements belong to the connection that made them, so a reconnect has to
+     * throw the cached ones away or every later query fails on a dead handle.
+     */
+    private static void clearPreparedStatements() {
+        storeStatement = null;
+        updateGateStatement = null;
+        getGateStatement = null;
+        removeStatement = null;
+        incrementVisitStatement = null;
+        updateIndvPermStatement = null;
+        storeIndvPermStatement = null;
+        getIndvPermStatement = null;
+        getAllIndvPermStatement = null;
     }
 
     public static boolean isConnected() {
