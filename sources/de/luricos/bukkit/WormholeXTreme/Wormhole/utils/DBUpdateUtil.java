@@ -1,6 +1,7 @@
 package de.luricos.bukkit.WormholeXTreme.Wormhole.utils;
 
 import de.luricos.bukkit.WormholeXTreme.Wormhole.WormholeXTreme;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateDBConnector;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.utils.WXTLogger;
 import java.io.BufferedReader;
 import java.io.File;
@@ -36,7 +37,7 @@ public class DBUpdateUtil {
                     if (entry == null) {
                         break;
                     }
-                    if (entry.getName().contains("db_create_")) {
+                    if (entry.getName().contains(StargateDBConnector.getSchemaDirectory() + "/db_create_")) {
                         count++;
                     }
                 }
@@ -207,26 +208,24 @@ public class DBUpdateUtil {
                 return false;
             }
         }
-        File dbFile = new File("./plugins/WormholeXTreme/WormholeXTremeDB/WormholeXTreme.sqlite");
-        if (dbFile.exists() && dbFile.length() > 0) {
-            WXTLogger.prettyLog(Level.INFO, false, "Database already exists; checking for schema updates.");
+        if (!StargateDBConnector.isMySQL()) {
+            File dbFile = new File(StargateDBConnector.SQLITE_FILE);
+            if (dbFile.exists() && dbFile.length() > 0) {
+                WXTLogger.prettyLog(Level.INFO, false, "Database already exists; checking for schema updates.");
+            }
         }
         try {
-            Class.forName("org.sqlite.JDBC");
-            try {
-                sql_con = DriverManager.getConnection("jdbc:sqlite:./plugins/WormholeXTreme/WormholeXTremeDB/WormholeXTreme.sqlite", "sa", "");
-                sql_con.setAutoCommit(true);
+            sql_con = StargateDBConnector.open();
+            if (!StargateDBConnector.isMySQL()) {
                 sql_con.prepareStatement("PRAGMA journal_mode = TRUNCATE;").executeQuery().close();
-                int version = getCurrentVersion();
-                int count = getCountDBFiles();
-                updateDB(version, count);
-                return true;
-            } catch (SQLException e5) {
-                WXTLogger.prettyLog(Level.FINE, false, e5.getMessage());
-                return false;
             }
-        } catch (ClassNotFoundException e6) {
-            WXTLogger.prettyLog(Level.FINE, false, e6.getMessage());
+            int version = getCurrentVersion();
+            int count = getCountDBFiles();
+            updateDB(version, count);
+            return true;
+        } catch (SQLException e5) {
+            WXTLogger.prettyLog(Level.SEVERE, false, "Could not prepare " + StargateDBConnector.describe()
+                    + ": " + e5.getMessage());
             return false;
         }
     }
@@ -243,7 +242,7 @@ public class DBUpdateUtil {
                 stmt = sql_con.createStatement();
                 for (int i = version + 1; i <= count; i++) {
                     StringBuilder sb = new StringBuilder();
-                    ArrayList<String> lines = readTextFromJar("/sql_commands/db_create_" + i);
+                    ArrayList<String> lines = readTextFromJar("/" + StargateDBConnector.getSchemaDirectory() + "/db_create_" + i);
                     Iterator<String> it = lines.iterator();
                     while (true) {
                         if (!it.hasNext()) {
