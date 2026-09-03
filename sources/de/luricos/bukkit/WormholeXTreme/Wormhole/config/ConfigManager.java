@@ -35,7 +35,13 @@ public class ConfigManager {
         WORMHOLE_MINIMUM_GATE_DISTANCE,
         PERMISSIONS_BACKEND,
         ECONOMY_ENABLED,
-        ALLOW_DESTINATION_GATE_SHUTDOWN
+        ALLOW_DESTINATION_GATE_SHUTDOWN,
+        DATABASE_TYPE,
+        DATABASE_HOST,
+        DATABASE_PORT,
+        DATABASE_NAME,
+        DATABASE_USERNAME,
+        DATABASE_PASSWORD
     }
 
 
@@ -120,6 +126,36 @@ public class ConfigManager {
             return bipe.getBooleanValue();
         }
         return false;
+    }
+
+    public static String getDatabaseType() {
+        Setting s = getConfigurations().get(ConfigKeys.DATABASE_TYPE);
+        return s == null ? "sqlite" : s.getStringValue();
+    }
+
+    public static String getDatabaseHost() {
+        Setting s = getConfigurations().get(ConfigKeys.DATABASE_HOST);
+        return s == null ? "localhost" : s.getStringValue();
+    }
+
+    public static int getDatabasePort() {
+        Setting s = getConfigurations().get(ConfigKeys.DATABASE_PORT);
+        return s == null ? 3306 : s.getIntValue();
+    }
+
+    public static String getDatabaseName() {
+        Setting s = getConfigurations().get(ConfigKeys.DATABASE_NAME);
+        return s == null ? "wormholextreme" : s.getStringValue();
+    }
+
+    public static String getDatabaseUsername() {
+        Setting s = getConfigurations().get(ConfigKeys.DATABASE_USERNAME);
+        return s == null ? "root" : s.getStringValue();
+    }
+
+    public static String getDatabasePassword() {
+        Setting s = getConfigurations().get(ConfigKeys.DATABASE_PASSWORD);
+        return s == null ? "" : s.getStringValue();
     }
 
     public static ConcurrentHashMap<ConfigKeys, Setting> getConfigurations() {
