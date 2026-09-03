@@ -1627,7 +1627,6 @@ public class Stargate {
 
     private void toggleRedstoneGateActivatedPower() {
         if (isGateRedstonePowered() && getGateRedstoneGateActivatedBlock() != null && getGateRedstoneGateActivatedBlock().getType() == Material.LEVER) {
-            byte leverState = getGateRedstoneGateActivatedBlock().getData();
             { if (getGateRedstoneGateActivatedBlock().getBlockData() instanceof org.bukkit.block.data.type.Switch) { org.bukkit.block.data.type.Switch _sw8 = (org.bukkit.block.data.type.Switch) getGateRedstoneGateActivatedBlock().getBlockData(); _sw8.setPowered(isGateActive()); getGateRedstoneGateActivatedBlock().setBlockData(_sw8); } }
         }
     }
