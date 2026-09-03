@@ -3,6 +3,7 @@ package de.luricos.bukkit.WormholeXTreme.Wormhole.logic;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.WormholeXTreme;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.exceptions.WormholeActivationLayerNotFoundException;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.StargateUpdateRunnable;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.shape.ShapeEnabledFile;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.Stargate;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.Stargate3DShape;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateManager;
@@ -49,7 +50,7 @@ public class StargateHelper {
         while (it.hasNext()) {
             String key = it.next();
             StargateShape shape = getStargateShapes().get(key);
-            if (shape == null) {
+            if (shape == null || !shape.isShapeEnabled()) {
                 continue;
             }
             Stargate s = shape instanceof Stargate3DShape
@@ -75,6 +76,10 @@ public class StargateHelper {
     }
 
     public static Stargate checkStargate(Block buttonBlock, BlockFace facing, StargateShape shape) {
+        if (shape != null && !shape.isShapeEnabled()) {
+            WXTLogger.prettyLog(Level.FINE, false, "Shape: " + shape.getShapeName() + " is disabled; refusing to build.");
+            return null;
+        }
         if (shape instanceof Stargate3DShape) {
             return checkStargate3D(buttonBlock, facing, (Stargate3DShape) shape, true);
         }
@@ -472,6 +477,136 @@ public class StargateHelper {
         return shapeNames;
     }
 
+    /** Shape names that gates can actually be built from right now. */
+    public static List<String> getEnabledShapeNames() {
+        List<String> shapeNames = new ArrayList<>();
+        for (String key : getStargateShapes().keySet()) {
+            StargateShape shape = getStargateShapes().get(key);
+            if (shape != null && shape.isShapeEnabled()) {
+                shapeNames.add(shape.getShapeName());
+            }
+        }
+        return shapeNames;
+    }
+
+    public static boolean isShapeEnabled(String shapeName) {
+        StargateShape shape = getStargateShape(shapeName);
+        return shape != null && shape.isShapeEnabled();
+    }
+
+    /**
+     * Turns a shape on or off and records it in the shape file, so the state
+     * survives a restart. Returns false when there is no such loaded shape.
+     */
+    public static boolean setShapeEnabled(String shapeName, boolean enabled) {
+        StargateShape shape = getStargateShape(shapeName);
+        if (shape == null) {
+            return false;
+        }
+        shape.setShapeEnabled(enabled);
+        java.io.File file = findShapeFileFor(shape.getShapeName());
+        if (file == null) {
+            WXTLogger.prettyLog(Level.WARNING, false, "Shape " + shape.getShapeName()
+                    + " was switched " + (enabled ? "on" : "off")
+                    + " but no file was found for it, so it will revert on reload.");
+            return true;
+        }
+        writeEnabledFlag(file, enabled);
+        return true;
+    }
+
+    /**
+     * Finds the file a loaded shape came from. Files are usually named after
+     * the shape, but the Name= inside is what actually counts, so fall back to
+     * reading them.
+     */
+    public static java.io.File findShapeFileFor(String shapeName) {
+        java.io.File[] files = getShapesDirectory().listFiles();
+        if (files == null || shapeName == null) {
+            return null;
+        }
+        for (java.io.File file : files) {
+            if (!file.getName().toLowerCase().endsWith(".shape")) {
+                continue;
+            }
+            String bare = file.getName().substring(0, file.getName().length() - ".shape".length());
+            if (bare.equalsIgnoreCase(shapeName)) {
+                return file;
+            }
+        }
+        for (java.io.File file : files) {
+            if (!file.getName().toLowerCase().endsWith(".shape")) {
+                continue;
+            }
+            try {
+                for (String raw : java.nio.file.Files.readAllLines(file.toPath())) {
+                    String line = raw.trim();
+                    if (line.startsWith("#")) {
+                        continue;
+                    }
+                    if (line.replace(" ", "").toLowerCase().startsWith("name=")) {
+                        if (line.substring(line.indexOf('=') + 1).trim().equalsIgnoreCase(shapeName)) {
+                            return file;
+                        }
+                        break;
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Rewrites just the ENABLED line of a shape file, leaving everything else
+     * as it was. The file's own line endings are kept, so a shape saved on
+     * Windows does not come back as a whole-file diff.
+     */
+    private static void writeEnabledFlag(java.io.File file, boolean enabled) {
+        try {
+            String raw = new String(java.nio.file.Files.readAllBytes(file.toPath()),
+                    java.nio.charset.StandardCharsets.UTF_8);
+            String eol = raw.contains("\r\n") ? "\r\n" : "\n";
+            java.util.List<String> lines = new ArrayList<>(java.util.Arrays.asList(raw.split("\\r?\\n", -1)));
+            StringBuilder out = new StringBuilder();
+            java.util.List<String> updated = ShapeEnabledFile.withFlag(lines, enabled);
+            for (int i = 0; i < updated.size(); i++) {
+                if (i > 0) {
+                    out.append(eol);
+                }
+                out.append(updated.get(i));
+            }
+            java.nio.file.Files.write(file.toPath(), out.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            WXTLogger.prettyLog(Level.WARNING, false, "Could not write the enabled flag to "
+                    + file.getName() + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * Settles whether a freshly parsed shape is on or off. A file that says
+     * nothing gets the built-in default for that name, and the answer is
+     * written back so the file is explicit from then on and an admin can see
+     * and change it.
+     */
+    private static void applyEnabledFlag(java.io.File file, StargateShape shape, java.util.List<String> lines) {
+        Boolean flag = ShapeEnabledFile.readFlag(lines);
+        boolean enabled = flag == null
+                ? ShapeEnabledFile.defaultFor(shape.getShapeName())
+                : flag.booleanValue();
+        shape.setShapeEnabled(enabled);
+        if (flag == null) {
+            writeEnabledFlag(file, enabled);
+            WXTLogger.prettyLog(Level.INFO, false, "Shape " + shape.getShapeName()
+                    + " had no ENABLED setting; wrote " + (enabled ? "TRUE" : "FALSE") + " into "
+                    + file.getName() + ".");
+        }
+        if (!enabled) {
+            WXTLogger.prettyLog(Level.INFO, false, "Shape " + shape.getShapeName()
+                    + " is disabled. Turn it on with /wxshape enable " + shape.getShapeName() + ".");
+        }
+    }
+
     private static boolean isStargateMaterial(Block b, StargateShape s) {
         return b.getType() == s.getShapeStructureMaterial();
     }
@@ -501,8 +636,10 @@ public class StargateHelper {
                 WXTLogger.prettyLog(java.util.logging.Level.WARNING, false, "Shape file has no usable name: " + shapeFile.getName());
                 return false;
             }
+            applyEnabledFlag(shapeFile, shape, lines);
             stargateShapes.put(shape.getShapeName().toLowerCase(), shape);
-            WXTLogger.prettyLog(java.util.logging.Level.INFO, false, "Loaded shape: " + shape.getShapeName());
+            WXTLogger.prettyLog(java.util.logging.Level.INFO, false, "Loaded shape: " + shape.getShapeName()
+                    + (shape.isShapeEnabled() ? "" : " (disabled)"));
             return true;
         } catch (Exception e) {
             WXTLogger.prettyLog(java.util.logging.Level.WARNING, false, "Failed to load shape " + shapeFile.getName() + ": " + e.getMessage());
@@ -577,8 +714,10 @@ public class StargateHelper {
                     String[] fileLines = lines.toArray(new String[0]);
                     StargateShape shape = StargateShapeFactory.createShapeFromFile(fileLines);
                     if (shape != null && shape.getShapeName() != null) {
+                        applyEnabledFlag(shapeFile, shape, lines);
                         stargateShapes.put(shape.getShapeName().toLowerCase(), shape);
-                        WXTLogger.prettyLog(java.util.logging.Level.FINE, false, "Loaded shape: " + shape.getShapeName());
+                        WXTLogger.prettyLog(java.util.logging.Level.FINE, false, "Loaded shape: " + shape.getShapeName()
+                                + (shape.isShapeEnabled() ? "" : " (disabled)"));
                     }
                 } catch (Exception e) {
                     WXTLogger.prettyLog(java.util.logging.Level.WARNING, false, "Failed to load shape " + shapeFile.getName() + ": " + e.getMessage());
