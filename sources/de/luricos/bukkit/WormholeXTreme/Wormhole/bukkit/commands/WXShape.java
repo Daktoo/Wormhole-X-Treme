@@ -27,7 +27,7 @@ import org.bukkit.entity.Player;
  */
 public class WXShape implements CommandExecutor, TabCompleter {
 
-    private static final List<String> SUBCOMMANDS = Arrays.asList("create", "edit", "load", "unload", "remove");
+    private static final List<String> SUBCOMMANDS = Arrays.asList("create", "edit", "enable", "disable", "load", "unload", "remove");
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
@@ -36,7 +36,8 @@ public class WXShape implements CommandExecutor, TabCompleter {
         }
         if (args.length == 2) {
             String sub = args[0].toLowerCase();
-            if (sub.equals("edit") || sub.equals("unload") || sub.equals("remove")) {
+            if (sub.equals("edit") || sub.equals("unload") || sub.equals("remove")
+                    || sub.equals("enable") || sub.equals("disable")) {
                 return filterPrefix(StargateHelper.getShapeNames(), args[1]);
             }
             if (sub.equals("load")) {
@@ -148,6 +149,10 @@ public class WXShape implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 return ShapeBuilderManager.startEdit(player, a[1]);
+            case "enable":
+                return doSetEnabled(player, a, true);
+            case "disable":
+                return doSetEnabled(player, a, false);
             case "load":
                 return doLoad(player, a);
             case "unload":
@@ -332,6 +337,39 @@ public class WXShape implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    /**
+     * Switches a shape on or off. The flag is written into the shape file, so
+     * a disabled shape stays disabled through a restart and only comes back
+     * when someone runs the enable command or edits the file by hand.
+     */
+    private static boolean doSetEnabled(Player player, String[] a, boolean enabled) {
+        String verb = enabled ? "enable" : "disable";
+        if (a.length < 2) {
+            player.sendMessage(ConfigManager.MessageStrings.errorHeader + "Usage: /wxshape " + verb + " <shape>");
+            return true;
+        }
+        if (!StargateHelper.isStargateShape(a[1])) {
+            player.sendMessage(ConfigManager.MessageStrings.errorHeader + "No loaded shape called '" + a[1] + "'.");
+            return true;
+        }
+        String name = StargateHelper.getStargateShapeName(a[1]);
+        if (StargateHelper.isShapeEnabled(a[1]) == enabled) {
+            player.sendMessage(ConfigManager.MessageStrings.normalHeader + "Shape '" + name + "' is already " + verb + "d.");
+            return true;
+        }
+        if (!StargateHelper.setShapeEnabled(a[1], enabled)) {
+            player.sendMessage(ConfigManager.MessageStrings.errorHeader + "Could not " + verb + " '" + name + "'. Check the server log.");
+            return true;
+        }
+        if (enabled) {
+            player.sendMessage(ConfigManager.MessageStrings.normalHeader + "Enabled shape '" + name + "'. Gates can be built from it again.");
+        } else {
+            player.sendMessage(ConfigManager.MessageStrings.normalHeader + "Disabled shape '" + name + "'. No new gates can be built from it.");
+            player.sendMessage(ConfigManager.MessageStrings.normalHeader + "§8Gates already built from it keep working. Turn it back on with §7/wxshape enable " + name);
+        }
+        return true;
+    }
+
     private static boolean doLoad(Player player, String[] a) {
         if (a.length < 2) {
             player.sendMessage(ConfigManager.MessageStrings.errorHeader + "Usage: /wxshape load <shape>");
@@ -386,6 +424,8 @@ public class WXShape implements CommandExecutor, TabCompleter {
         player.sendMessage(ConfigManager.MessageStrings.normalHeader + "Gate shape commands §3::");
         player.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wxshape create §8- build a new shape step by step");
         player.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wxshape edit §8<shape> - rework an existing shape");
+        player.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wxshape enable §8<shape> - allow gates to be built from it");
+        player.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wxshape disable §8<shape> - stop new gates being built from it");
         player.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wxshape load §8<shape> - load a .shape file from disk");
         player.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wxshape unload §8<shape> - unload without deleting the file");
         player.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wxshape remove §8<shape> - delete the file entirely");
