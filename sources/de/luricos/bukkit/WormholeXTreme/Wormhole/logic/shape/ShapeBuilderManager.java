@@ -662,6 +662,10 @@ public class ShapeBuilderManager {
             return "Could not create the GateShapes folder.";
         }
         File target = new File(directory, session.getShapeName() + ".shape");
+        // Editing a shape must not quietly switch it back on. Remember where
+        // the flag stood, and put it back once the new file is loaded.
+        boolean wasKnown = StargateHelper.isStargateShape(session.getShapeName());
+        boolean wasEnabled = !wasKnown || StargateHelper.isShapeEnabled(session.getShapeName());
         try {
             Files.write(target.toPath(), serialize(session).getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
@@ -673,6 +677,9 @@ public class ShapeBuilderManager {
         StargateHelper.unloadShape(session.getShapeName());
         if (!StargateHelper.loadShapeFile(target)) {
             return "The file was written but the loader rejected it. Check the server log.";
+        }
+        if (wasKnown && StargateHelper.isShapeEnabled(session.getShapeName()) != wasEnabled) {
+            StargateHelper.setShapeEnabled(session.getShapeName(), wasEnabled);
         }
         return null;
     }
