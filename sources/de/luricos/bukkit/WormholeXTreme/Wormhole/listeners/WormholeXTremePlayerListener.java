@@ -32,9 +32,7 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.entity.EntityPortalEvent;
-import org.bukkit.material.Button;
 import org.bukkit.util.Vector;
-import org.bukkit.material.Lever;
 
 /* JADX INFO: loaded from: WormholeXTreme.jar:de/luricos/bukkit/WormholeXTreme/Wormhole/listeners/WormholeXTremePlayerListener.class */
 public class WormholeXTremePlayerListener implements Listener {
@@ -59,8 +57,10 @@ public class WormholeXTremePlayerListener implements Listener {
         if (stargate != null) {
             if (!WorldUtils.isSameBlock(stargate.getGateDialLeverBlock(), clickedBlock) || (!(stargate.isGateSignPowered() && WXPermissions.checkPermission(player, stargate, WXPermissions.PermissionType.SIGN)) && (stargate.isGateSignPowered() || !WXPermissions.checkPermission(player, stargate, WXPermissions.PermissionType.DIALER)))) {
                 if (WorldUtils.isSameBlock(stargate.getGateIrisLeverBlock(), clickedBlock) && !stargate.isGateSignPowered() && WXPermissions.checkPermission(player, stargate, WXPermissions.PermissionType.DIALER)) {
-                    Lever lever = new Lever(clickedBlock.getType(), clickedBlock.getData());
-                    WXTLogger.prettyLog(Level.FINE, false, "Player '" + player.getName() + "' has triggered the iris lever of gate '" + stargate.getGateName() + "' status is now " + (!lever.isPowered()));
+                    org.bukkit.block.data.BlockData leverBlockData = clickedBlock.getBlockData();
+                    boolean leverWasPowered = (leverBlockData instanceof org.bukkit.block.data.Powerable)
+                            && ((org.bukkit.block.data.Powerable) leverBlockData).isPowered();
+                    WXTLogger.prettyLog(Level.FINE, false, "Player '" + player.getName() + "' has triggered the iris lever of gate '" + stargate.getGateName() + "' status is now " + (!leverWasPowered));
                     stargate.toggleIrisActive(true);
                     return true;
                 }
@@ -95,13 +95,29 @@ public class WormholeXTremePlayerListener implements Listener {
         }
         if (direction == null) {
             if (clickedBlock != null) {
-                org.bukkit.material.MaterialData materialData = clickedBlock.getState().getData();
-                if (materialData instanceof org.bukkit.material.Button) {
-                    org.bukkit.material.Button buttonData = (org.bukkit.material.Button) materialData;
-                    direction = buttonData.getFacing();
-                } else if (materialData instanceof org.bukkit.material.Lever) {
-                    org.bukkit.material.Lever leverData = (org.bukkit.material.Lever) materialData;
-                    direction = leverData.getFacing();
+                // Buttons and levers are both Switch in the modern block data
+                // API. The old MaterialData call this replaced was what pulled
+                // CraftBukkit's legacy material tables into memory, on the
+                // first click of any button or lever anywhere on the server.
+                org.bukkit.block.data.BlockData clickedBlockData = clickedBlock.getBlockData();
+                if (clickedBlockData instanceof org.bukkit.block.data.type.Switch) {
+                    org.bukkit.block.data.type.Switch switchData = (org.bukkit.block.data.type.Switch) clickedBlockData;
+                    // getFacing() is the horizontal rotation, which is the
+                    // direction a wall switch points away from its wall - the
+                    // same answer the old Button.getFacing() gave. Floor and
+                    // ceiling switches carry their mounting separately, and the
+                    // old API reported those as UP and DOWN.
+                    switch (switchData.getAttachedFace()) {
+                        case FLOOR:
+                            direction = BlockFace.UP;
+                            break;
+                        case CEILING:
+                            direction = BlockFace.DOWN;
+                            break;
+                        default:
+                            direction = switchData.getFacing();
+                            break;
+                    }
                 }
             }
             if (direction == null) {
