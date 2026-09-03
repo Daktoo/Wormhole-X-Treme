@@ -4,6 +4,8 @@
 # Interior: 7705 portal blocks. Kawoosh: 30820 blocks.
 Name=Super
 Version=2
+# FALSE stops this shape being used to build gates. Survives restarts.
+ENABLED=TRUE
 
 GateShape=
 
