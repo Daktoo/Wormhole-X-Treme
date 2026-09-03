@@ -53,7 +53,7 @@ commands:
     usage: /<command> [all]
   wxshape:
     description: Create, edit and manage gate shapes in game.
-    usage: /<command> <create|edit|load|unload|remove> [shape]
+    usage: /<command> <create|edit|enable|disable|load|unload|remove> [shape]
   wxconvertdb:
     description: Convert a NovyXtreme stargatesList.json database into the WormholeXTreme database.
     usage: /<command>
