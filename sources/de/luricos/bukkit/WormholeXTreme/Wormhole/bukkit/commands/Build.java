@@ -23,7 +23,7 @@ public class Build implements CommandExecutor, TabCompleter {
             List<String> opts = new ArrayList<>();
             String prefix = args[0].toLowerCase();
             int index = 1;
-            for (String shapeName : StargateHelper.getShapeNames()) {
+            for (String shapeName : StargateHelper.getEnabledShapeNames()) {
                 // offer both the shape name and its numeric index
                 if (shapeName.toLowerCase().startsWith(prefix)) {
                     opts.add(shapeName);
@@ -48,13 +48,17 @@ public class Build implements CommandExecutor, TabCompleter {
             if (WXTStringUtils.isIntNumber(shapeName)) {
                 int sCount = 1;
                 int sCEnd = Integer.parseInt(shapeName);
-                Iterator<String> it = StargateHelper.getShapeNames().iterator();
+                Iterator<String> it = StargateHelper.getEnabledShapeNames().iterator();
                 while (true) {
                     if (!it.hasNext()) { break; }
                     String sName = it.next();
                     if (sCount >= sCEnd) { shapeName = sName; break; }
                     sCount++;
                 }
+            }
+            if (StargateHelper.isStargateShape(shapeName) && !StargateHelper.isShapeEnabled(shapeName)) {
+                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Shape '" + StargateHelper.getStargateShapeName(shapeName) + "' is disabled on this server.");
+                return true;
             }
             if (StargateHelper.isStargateShape(shapeName)) {
                 StargateManager.addPlayerBuilderShape(player.getName(), StargateHelper.getStargateShape(shapeName));
