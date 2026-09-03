@@ -3,12 +3,9 @@ package de.luricos.bukkit.WormholeXTreme.Wormhole.utils;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.WormholeXTreme;
 import java.util.logging.Level;
 import org.bukkit.Chunk;
-import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.material.Button;
-import org.bukkit.material.Sign;
 
 /* JADX INFO: loaded from: WormholeXTreme.jar:de/luricos/bukkit/WormholeXTreme/Wormhole/utils/WorldUtils.class */
 public class WorldUtils {
@@ -81,20 +78,6 @@ public class WorldUtils {
         return blockFace.getOppositeFace();
     }
 
-    public static byte getLeverFacingByteFromBlockFace(BlockFace blockFace) {
-        return getButtonFacingByteFromBlockFace(blockFace);
-    }
-
-    public static byte getButtonFacingByteFromBlockFace(BlockFace blockFace) {
-        Button buttonFacing = new Button(Material.STONE_BUTTON);
-        buttonFacing.setFacingDirection(blockFace);
-        return buttonFacing.getData();
-    }
-
-    public static byte getLeverToggleByte(byte leverState, boolean isActive) {
-        return (byte) (isActive ? (leverState & 8) != 8 ? leverState ^ 8 : leverState : (leverState & 8) == 8 ? leverState ^ 8 : leverState);
-    }
-
     public static BlockFace getPerpendicularRightDirection(BlockFace blockFace) {
         switch (AnonymousClass1.$SwitchMap$org$bukkit$block$BlockFace[blockFace.ordinal()]) {
             case 1:
@@ -143,12 +126,6 @@ public class WorldUtils {
             default:
                 return blockFace;
         }
-    }
-
-    public static byte getSignFacingByteFromBlockFace(BlockFace blockFace) {
-        Sign signFacing = new Sign(Material.OAK_WALL_SIGN);
-        signFacing.setFacingDirection(blockFace);
-        return signFacing.getData();
     }
 
     public static boolean isSameBlock(Block b1, Block b2) {
