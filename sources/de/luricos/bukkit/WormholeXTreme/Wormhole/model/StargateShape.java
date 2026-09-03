@@ -26,6 +26,8 @@ public class StargateShape {
     private Material shapeLightMaterial;
     private int shapeWooshTicks;
     private int shapeLightTicks;
+    /** A disabled shape stays loaded but cannot be used to build gates. */
+    private boolean shapeEnabled = true;
 
     /* JADX WARN: Type inference failed for: r1v10, types: [int[], int[][]] */
     /* JADX WARN: Type inference failed for: r1v2, types: [int[], int[][]] */
@@ -46,6 +48,7 @@ public class StargateShape {
         this.shapeLightMaterial = Material.GLOWSTONE;
         this.shapeWooshTicks = 3;
         this.shapeLightTicks = 3;
+        this.shapeEnabled = true;
     }
 
     /* JADX WARN: Type inference failed for: r1v10, types: [int[], int[][]] */
@@ -67,6 +70,7 @@ public class StargateShape {
         this.shapeLightMaterial = Material.GLOWSTONE;
         this.shapeWooshTicks = 3;
         this.shapeLightTicks = 3;
+        this.shapeEnabled = true;
         setShapeSignPosition(new int[0]);
         setShapeEnterPosition(new int[0]);
         ArrayList<Integer[]> blockPositions = new ArrayList<>();
@@ -144,6 +148,8 @@ public class StargateShape {
                 setShapeStructureMaterial(Material.valueOf(line.split("=")[1]));
             } else if (line.contains("ACTIVE_MATERIAL")) {
                 setShapeLightMaterial(Material.valueOf(line.split("=")[1]));
+            } else if (line.replace(" ", "").toUpperCase().startsWith("ENABLED=") && line.split("=").length > 1) {
+                setShapeEnabled(de.luricos.bukkit.WormholeXTreme.Wormhole.logic.shape.ShapeEnabledFile.parse(line.split("=")[1]));
             }
         }
         WXTLogger.prettyLog(Level.FINE, false, "Stargate Sign Position: \"" + Arrays.toString(getShapeSignPosition()) + "\"");
@@ -198,6 +204,15 @@ public class StargateShape {
 
     public int getShapeLightTicks() {
         return this.shapeLightTicks;
+    }
+
+    /** False when this shape has been switched off with /wxshape disable. */
+    public boolean isShapeEnabled() {
+        return this.shapeEnabled;
+    }
+
+    public void setShapeEnabled(boolean shapeEnabled) {
+        this.shapeEnabled = shapeEnabled;
     }
 
     public String getShapeName() {
