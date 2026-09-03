@@ -222,6 +222,8 @@ public class DBUpdateUtil {
             int version = getCurrentVersion();
             int count = getCountDBFiles();
             updateDB(version, count);
+            // Only once the schema is in place, so there is somewhere to put it.
+            HsqlDbImporter.importInto(sql_con);
             return true;
         } catch (SQLException e5) {
             WXTLogger.prettyLog(Level.SEVERE, false, "Could not prepare " + StargateDBConnector.describe()
