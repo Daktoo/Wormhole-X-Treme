@@ -90,6 +90,15 @@ public final class StargateDBConnector {
         return connection;
     }
 
+    /**
+     * Opens MySQL/MariaDB using the credentials in the config regardless of
+     * which backend is currently selected. Needed by the SQLite import, which
+     * has to talk to both databases at once.
+     */
+    public static Connection openMySQLDirect() throws SQLException {
+        return openMySQL();
+    }
+
     private static Connection openMySQL() throws SQLException {
         String scheme = loadMySQLDriver();
         String url = "jdbc:" + scheme + "://" + ConfigManager.getDatabaseHost()
