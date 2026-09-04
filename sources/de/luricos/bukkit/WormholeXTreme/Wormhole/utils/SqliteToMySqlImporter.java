@@ -199,9 +199,22 @@ public final class SqliteToMySqlImporter {
         }
         Set<String> columns = columnsOf(rows);
 
-        PreparedStatement insert = target.prepareStatement(
-                "INSERT INTO Stargates (Name, GateData, Network, World, WorldName, WorldEnvironment, Owner,"
-                + " GateShape, VisitCount) VALUES ( ? , ? , ? , ? , ? , ? , ? , ? , ? );");
+        // Gate ids are not just row numbers. Dial targets and sign targets are
+        // stored inside GateData as the id of the gate they point at, so
+        // letting AUTO_INCREMENT hand out fresh ones silently breaks every
+        // linked sign on the server. Ids are carried across verbatim whenever
+        // the target is empty, which is the case for a first-time migration.
+        boolean preserveIds = existing.isEmpty() && columns.contains("id");
+        if (!preserveIds && columns.contains("id")) {
+            WXTLogger.prettyLog(Level.WARNING, false, "[wxconvertdb] Target already holds gates, so original"
+                    + " gate ids cannot be preserved. Dial signs on imported gates may need re-pointing.");
+        }
+
+        PreparedStatement insert = target.prepareStatement(preserveIds
+                ? "INSERT INTO Stargates (Id, Name, GateData, Network, World, WorldName, WorldEnvironment,"
+                        + " Owner, GateShape, VisitCount) VALUES ( ? , ? , ? , ? , ? , ? , ? , ? , ? , ? );"
+                : "INSERT INTO Stargates (Name, GateData, Network, World, WorldName, WorldEnvironment, Owner,"
+                        + " GateShape, VisitCount) VALUES ( ? , ? , ? , ? , ? , ? , ? , ? , ? );");
         int copied = 0;
         int skipped = 0;
         try {
@@ -217,15 +230,20 @@ public final class SqliteToMySqlImporter {
                     skipped++;
                     continue;
                 }
-                insert.setString(1, name);
-                insert.setBytes(2, rows.getBytes("GateData"));
-                insert.setString(3, columns.contains("network") ? rows.getString("Network") : "");
-                insert.setLong(4, columns.contains("world") ? rows.getLong("World") : 0L);
-                insert.setString(5, columns.contains("worldname") ? rows.getString("WorldName") : "");
-                insert.setString(6, columns.contains("worldenvironment") ? rows.getString("WorldEnvironment") : "");
-                insert.setString(7, columns.contains("owner") ? rows.getString("Owner") : null);
-                insert.setString(8, columns.contains("gateshape") ? rows.getString("GateShape") : "");
-                insert.setInt(9, columns.contains("visitcount") ? rows.getInt("VisitCount") : 0);
+                int c = 0;
+                if (preserveIds) {
+                    insert.setInt(++c, rows.getInt("Id"));
+                }
+                insert.setString(++c, name);
+                insert.setBytes(++c, rows.getBytes("GateData"));
+                insert.setString(++c, columns.contains("network") ? rows.getString("Network") : "");
+                insert.setLong(++c, columns.contains("world") ? rows.getLong("World") : 0L);
+                insert.setString(++c, columns.contains("worldname") ? rows.getString("WorldName") : "");
+                insert.setString(++c, columns.contains("worldenvironment")
+                        ? rows.getString("WorldEnvironment") : "");
+                insert.setString(++c, columns.contains("owner") ? rows.getString("Owner") : null);
+                insert.setString(++c, columns.contains("gateshape") ? rows.getString("GateShape") : "");
+                insert.setInt(++c, columns.contains("visitcount") ? rows.getInt("VisitCount") : 0);
 
                 // A savepoint per row, so any constraint we did not anticipate
                 // costs one gate rather than the whole import.
