@@ -256,15 +256,23 @@ public class StargateDBManager {
                         }
                     }
                     if (s2.getGateTempSignTarget() >= 0) {
+                        // A missing break on the exhausted iterator used to spin
+                        // the server thread forever here whenever a sign target
+                        // pointed at a gate id that no longer existed.
                         Iterator<Stargate> it2 = gateList.iterator();
-                        while (true) {
-                            if (it2.hasNext()) {
-                                Stargate t2 = it2.next();
-                                if (t2.getGateId() == s2.getGateTempSignTarget()) {
-                                    s2.setGateDialSignTarget(t2);
-                                    break;
-                                }
+                        boolean signTargetFound = false;
+                        while (it2.hasNext()) {
+                            Stargate t2 = it2.next();
+                            if (t2.getGateId() == s2.getGateTempSignTarget()) {
+                                s2.setGateDialSignTarget(t2);
+                                signTargetFound = true;
+                                break;
                             }
+                        }
+                        if (!signTargetFound) {
+                            WXTLogger.prettyLog(Level.WARNING, false, "Gate '" + s2.getGateName()
+                                    + "' has a dial sign pointing at gate id " + s2.getGateTempSignTarget()
+                                    + ", which does not exist. Leaving its sign target unset.");
                         }
                     }
                 }
