@@ -55,8 +55,8 @@ commands:
     description: Create, edit and manage gate shapes in game.
     usage: /<command> <create|edit|enable|disable|load|unload|remove> [shape]
   wxconvertdb:
-    description: Convert a NovyXtreme stargatesList.json database into the WormholeXTreme database.
-    usage: /<command>
+    description: Import gates from another database into the WormholeXTreme database.
+    usage: /<command> <nxt|sqlite>
 permissions:
   wormhole.use.sign:
     description: Player is able to use the dialer sign
