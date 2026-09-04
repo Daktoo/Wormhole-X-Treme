@@ -284,7 +284,9 @@ public class WormholeXTreme extends JavaPlugin {
         tp.getCommand("wxshape").setExecutor(wxshape);
         tp.getCommand("wxshape").setTabCompleter(wxshape);
 
-        tp.getCommand("wxconvertdb").setExecutor(new WXConvertDB());
+        WXConvertDB wxconvertdb = new WXConvertDB();
+        tp.getCommand("wxconvertdb").setExecutor(wxconvertdb);
+        tp.getCommand("wxconvertdb").setTabCompleter(wxconvertdb);
     }
 
     public static void registerEvents(boolean critical) {
