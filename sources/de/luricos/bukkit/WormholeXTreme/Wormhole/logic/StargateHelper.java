@@ -687,7 +687,8 @@ public class StargateHelper {
                             "Large.shape", "LargeSignDial.shape",
                             "Minimal.shape", "MinimalSignDial.shape",
                             "Small.shape", "SmallSignDial.shape",
-                            "Standard.shape", "StandardSignDial.shape"};
+                            "Standard.shape", "StandardSignDial.shape",
+                            "Super.shape", "SuperSignDial.shape"};
         for (String name : bundled) {
             java.io.File dest = new java.io.File(externalDir, name);
             if (!dest.exists()) {
