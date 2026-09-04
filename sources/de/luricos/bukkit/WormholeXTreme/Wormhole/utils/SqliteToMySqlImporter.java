@@ -8,7 +8,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
+import java.sql.Savepoint;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.logging.Level;
@@ -35,14 +39,17 @@ public final class SqliteToMySqlImporter {
         public final int individualPermissions;
         public final int groupPermissions;
         public final int configurations;
+        /** Gates left behind because their name collided in the target. */
+        public final List<String> collidedGateNames;
 
         private Result(int gatesCopied, int gatesSkipped, int individualPermissions,
-                int groupPermissions, int configurations) {
+                int groupPermissions, int configurations, List<String> collidedGateNames) {
             this.gatesCopied = gatesCopied;
             this.gatesSkipped = gatesSkipped;
             this.individualPermissions = individualPermissions;
             this.groupPermissions = groupPermissions;
             this.configurations = configurations;
+            this.collidedGateNames = collidedGateNames;
         }
     }
 
@@ -102,7 +109,8 @@ public final class SqliteToMySqlImporter {
             boolean restoreAutoCommit = target.getAutoCommit();
             target.setAutoCommit(false);
             try {
-                int[] gates = copyStargates(sqlite, target);
+                List<String> collided = new ArrayList<String>();
+                int[] gates = copyStargates(sqlite, target, collided);
                 int indv = copyTwoColumnTable(sqlite, target,
                         "StargateIndividualPermissions", "PlayerName", "Permission");
                 int group = copyTwoColumnTable(sqlite, target,
@@ -110,7 +118,7 @@ public final class SqliteToMySqlImporter {
                 int config = copyConfigurations(sqlite, target);
                 target.commit();
 
-                Result result = new Result(gates[0], gates[1], indv, group, config);
+                Result result = new Result(gates[0], gates[1], indv, group, config, collided);
                 WXTLogger.prettyLog(Level.INFO, false, "[wxconvertdb] SQLite to MySQL import finished. Gates copied="
                         + result.gatesCopied + " skipped=" + result.gatesSkipped
                         + " individualPerms=" + result.individualPermissions
@@ -162,8 +170,18 @@ public final class SqliteToMySqlImporter {
         }
     }
 
-    /** @return {copied, skipped} */
-    private static int[] copyStargates(Connection sqlite, Connection target) throws SQLException {
+    /**
+     * @param collided filled with the names of gates the target would not
+     *                 accept, so the caller can list them for the admin.
+     * @return {copied, skipped}
+     */
+    private static int[] copyStargates(Connection sqlite, Connection target, List<String> collided)
+            throws SQLException {
+        // Exact matches only. Whether two names that differ by case collide is
+        // the target's business, not ours: it depends on the collation of the
+        // Name column, which changed at schema version 8. Guessing here would
+        // wrongly skip gates on a case-sensitive column, so the savepoint below
+        // asks the database instead of second-guessing it.
         Set<String> existing = new HashSet<String>();
         ResultSet have = target.prepareStatement("SELECT Name FROM Stargates;").executeQuery();
         while (have.next()) {
@@ -195,7 +213,7 @@ public final class SqliteToMySqlImporter {
                 }
                 if (existing.contains(name)) {
                     WXTLogger.prettyLog(Level.FINE, false, "[wxconvertdb] Gate '" + name
-                            + "' already exists in the target database, leaving it alone.");
+                            + "' is already in the target database, leaving it alone.");
                     skipped++;
                     continue;
                 }
@@ -208,8 +226,22 @@ public final class SqliteToMySqlImporter {
                 insert.setString(7, columns.contains("owner") ? rows.getString("Owner") : null);
                 insert.setString(8, columns.contains("gateshape") ? rows.getString("GateShape") : "");
                 insert.setInt(9, columns.contains("visitcount") ? rows.getInt("VisitCount") : 0);
-                insert.executeUpdate();
-                copied++;
+
+                // A savepoint per row, so any constraint we did not anticipate
+                // costs one gate rather than the whole import.
+                Savepoint point = target.setSavepoint();
+                try {
+                    insert.executeUpdate();
+                    target.releaseSavepoint(point);
+                    existing.add(name);
+                    copied++;
+                } catch (SQLIntegrityConstraintViolationException e) {
+                    target.rollback(point);
+                    WXTLogger.prettyLog(Level.WARNING, false, "[wxconvertdb] Target refused gate '" + name
+                            + "': " + e.getMessage());
+                    collided.add(name);
+                    skipped++;
+                }
             }
         } finally {
             rows.close();
@@ -257,8 +289,18 @@ public final class SqliteToMySqlImporter {
                 }
                 insert.setString(1, key);
                 insert.setString(2, rows.getString(valueColumn));
-                insert.executeUpdate();
-                copied++;
+
+                Savepoint point = target.setSavepoint();
+                try {
+                    insert.executeUpdate();
+                    target.releaseSavepoint(point);
+                    existing.add(key);
+                    copied++;
+                } catch (SQLIntegrityConstraintViolationException e) {
+                    target.rollback(point);
+                    WXTLogger.prettyLog(Level.WARNING, false, "[wxconvertdb] Target refused " + table
+                            + " row '" + key + "': " + e.getMessage());
+                }
             }
         } finally {
             rows.close();

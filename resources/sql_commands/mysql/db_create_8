@@ -1,0 +1,7 @@
+-- Gate names are case-sensitive in the plugin (the in-memory registry is a
+-- plain HashMap), and stargateToSQL matches rows with WHERE Name = ?. Under a
+-- case-insensitive collation that matches the wrong row, so saving "meow"
+-- would overwrite "Meow". utf8mb4_bin makes MySQL agree with the plugin.
+ALTER TABLE Stargates MODIFY Name VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
+
+INSERT INTO VersionInfo VALUES (8);
