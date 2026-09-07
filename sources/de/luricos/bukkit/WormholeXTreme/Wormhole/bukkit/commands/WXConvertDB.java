@@ -109,20 +109,13 @@ public class WXConvertDB implements CommandExecutor, TabCompleter {
 
     /**
      * Copies the old SQLite database into the configured MySQL/MariaDB one.
-     *
-     * The order matters and the check below enforces it: the plugin has to
-     * already be running on MySQL before this is worth doing. Otherwise the
-     * rows would be copied across and the server would carry straight on
-     * writing new gates to SQLite, and the copy would be stale within minutes.
      */
     private static void doSqliteToMySQL(CommandSender sender) {
         if (!StargateDBConnector.isMySQL()) {
             sender.sendMessage(ConfigManager.MessageStrings.errorHeader
-                    + "This server is still running on SQLite, so there is nothing to convert into.");
+                    + "This server is still running on SQLite.");
             sender.sendMessage(ConfigManager.MessageStrings.normalHeader
-                    + "Set the database type to \u00a7emysql\u00a77 in config.yml, fill in the host, port, name,"
-                    + " username and password, restart the server once so the tables are built, then run"
-                    + " \u00a7e/wxconvertdb sqlite\u00a77.");
+                    + "Change the database type to MySQL in config.yml, then retry.");
             return;
         }
 
@@ -155,12 +148,10 @@ public class WXConvertDB implements CommandExecutor, TabCompleter {
                         + "Left behind (name already taken in MySQL): \u00a78"
                         + String.join("\u00a77, \u00a78", result.collidedGateNames));
                 sender.sendMessage(ConfigManager.MessageStrings.normalHeader
-                        + "MySQL treats gate names case-insensitively where SQLite does not, so names that"
-                        + " differ only by capitalisation clash. Rename them in SQLite and run this again.");
+                        + "MySQL's gate names are case-insensitive, rename them in SQLite and run this again.");
             }
             sender.sendMessage(ConfigManager.MessageStrings.normalHeader
-                    + "The SQLite file has not been touched. Run \u00a7e/wxreload\u00a77 to load the gates from"
-                    + " MySQL, and keep the old file as your backup until you are happy.");
+                    + "Run \u00a7e/wxreload\u00a77 to load the gates from MySQL");
         } catch (SqliteToMySqlImporter.ImportException e) {
             sender.sendMessage(ConfigManager.MessageStrings.errorHeader + e.getMessage());
             WXTLogger.prettyLog(Level.SEVERE, false, "[wxconvertdb] SQLite import failed: " + e.getMessage());
@@ -207,8 +198,7 @@ public class WXConvertDB implements CommandExecutor, TabCompleter {
 
         StargateShape standardShape = StargateHelper.getStargateShape("Standard");
         if (standardShape == null) {
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader
-                    + "Standard gate shape not found. Make sure WormholeXTreme has loaded its shapes.");
+            sender.sendMessage(ConfigManager.MessageStrings.errorHeader + "Standard gate shape not found. Make sure WormholeXTreme has loaded its shapes.");
             return;
         }
 
@@ -220,18 +210,13 @@ public class WXConvertDB implements CommandExecutor, TabCompleter {
         List<String> ungeneratedNames = new ArrayList<>();
 
         if (noGenerate) {
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader
-                    + "\u00a77Running with \u00a7e" + FLAG_NO_GENERATE
-                    + "\u00a77: gates in unexplored terrain will be listed and left for a later run.");
+            sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "\u00A77Running with gates in unexplored terrain will be listed and left for a later run.");
         }
 
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader
                 + "Found " + total + " gate(s) to convert. Starting...");
 
         if (noGenerate) {
-            // Nothing below this point runs in offline mode: that loop builds
-            // and detects gates, which is exactly what the flag exists to
-            // avoid. The batched job takes over instead.
             runOfflineConversion(sender, gates, standardShape);
             return;
         }
@@ -246,9 +231,7 @@ public class WXConvertDB implements CommandExecutor, TabCompleter {
             int timesVisited   = obj.has("timesVisited") ? obj.get("timesVisited").getAsInt() : 0;
 
             if (StargateManager.isStargate(name)) {
-                sender.sendMessage(ConfigManager.MessageStrings.normalHeader
-                        + "  §8[" + (i + 1) + "/" + total + "] §7Skipping '§e" + name
-                        + "§7' — gate already exists in WXT.");
+                sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "\u00A77[" + (i + 1) + "/" + total + "] Skipping '\u00A7e" + name + "\u00A77' - gate already exists in WXT.");
                 skipped++;
                 skippedNames.add(name);
                 continue;
@@ -262,9 +245,7 @@ public class WXConvertDB implements CommandExecutor, TabCompleter {
                 String worldName = leverJson.get("world").getAsString();
                 world = Bukkit.getWorld(worldName);
                 if (world == null) {
-                    sender.sendMessage(ConfigManager.MessageStrings.errorHeader
-                            + "  [" + (i + 1) + "/" + total + "] Skipping '" + name
-                            + "' — world '" + worldName + "' is not loaded.");
+                    sender.sendMessage(ConfigManager.MessageStrings.errorHeader + "\u00A77[" + (i + 1) + "/" + total + "] Skipping '" + name + "' - world '" + worldName + "' is not loaded.");
                     skipped++;
                     skippedNames.add(name);
                     continue;
@@ -273,9 +254,7 @@ public class WXConvertDB implements CommandExecutor, TabCompleter {
                 ly = leverJson.get("y").getAsDouble();
                 lz = leverJson.get("z").getAsDouble();
             } catch (Exception e) {
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader
-                        + "  [" + (i + 1) + "/" + total + "] Skipping '" + name
-                        + "' — bad lever block data: " + e.getMessage());
+                sender.sendMessage(ConfigManager.MessageStrings.errorHeader + "\u00A77[" + (i + 1) + "/" + total + "] Skipping '" + name + "'\u00A77 - bad lever block data: " + e.getMessage());
                 skipped++;
                 skippedNames.add(name);
                 continue;
@@ -285,9 +264,7 @@ public class WXConvertDB implements CommandExecutor, TabCompleter {
             try {
                 facing = BlockFace.valueOf(facingStr.toUpperCase());
             } catch (IllegalArgumentException e) {
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader
-                        + "  [" + (i + 1) + "/" + total + "] Skipping '" + name
-                        + "' — unknown facing '" + facingStr + "'.");
+                sender.sendMessage(ConfigManager.MessageStrings.errorHeader + "\u00A77[" + (i + 1) + "/" + total + "] Skipping '" + name + "'\u00A77 - unknown facing '" + facingStr + "'.");
                 skipped++;
                 skippedNames.add(name);
                 continue;
@@ -301,9 +278,7 @@ public class WXConvertDB implements CommandExecutor, TabCompleter {
             // is what turns this command into a watchdog kill, so the check
             // happens before the first getBlockAt rather than after.
             if (noGenerate && !isAreaGenerated(world, leverLoc)) {
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader
-                        + "  [" + (i + 1) + "/" + total + "] Skipping '" + name
-                        + "' \u2014 terrain there has never been generated.");
+                sender.sendMessage(ConfigManager.MessageStrings.errorHeader + "\u00A77[" + (i + 1) + "/" + total + "] Skipping '" + name + "' terrain there has never been generated.");
                 ungenerated++;
                 ungeneratedNames.add(name);
                 continue;
@@ -313,9 +288,7 @@ public class WXConvertDB implements CommandExecutor, TabCompleter {
 
             Stargate s = StargateHelper.checkStargate(leverLoc.getBlock(), facing, standardShape);
             if (s == null) {
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader
-                        + "  [" + (i + 1) + "/" + total + "] Skipping '" + name
-                        + "' — shape not detectable after building. Check the area is clear.");
+                sender.sendMessage(ConfigManager.MessageStrings.errorHeader + "\u00A77[" + (i + 1) + "/" + total + "] Skipping '" + name + "' - shape still not detectable, make sure the area is clear.");
                 skipped++;
                 skippedNames.add(name);
                 continue;
@@ -351,25 +324,18 @@ public class WXConvertDB implements CommandExecutor, TabCompleter {
             s.setupGateSign(true);
             StargateDBManager.stargateToSQL(s);
 
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader
-                    + "  §8[" + (i + 1) + "/" + total + "] §2Converted §7'§e" + name
-                    + "§7' (owner: §b" + ownerName + "§7, visits: §a" + timesVisited + "§7)");
+            sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "\u00A78[" + (i + 1) + "/" + total + "] \u00A72Converted \u00A77'\u00A7e" + name + "\u00A77' (owner: \u00A7b" + ownerName + "\u00A77, visits: \u00A7a" + timesVisited + "\u00A77)");
             converted++;
         }
 
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "Conversion complete §3::");
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader
-                + "§2Converted: " + converted + "  §8|  §eSkipped: " + skipped);
+        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "Conversion complete \u00A73::");
+        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "\u00A72Converted: " + converted + "  \u00A78|  \u00A7eSkipped: " + skipped);
         if (ungenerated > 0) {
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader
-                    + "Left in unexplored terrain: §8" + String.join("§7, §8", ungeneratedNames));
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader
-                    + "§7Visit those areas (or run without §e" + FLAG_NO_GENERATE
-                    + "§7) and convert again — gates already done are skipped automatically.");
+            sender.sendMessage(ConfigManager.MessageStrings.errorHeader + "Left in unexplored terrain: \u00A78" + String.join("\u00A77, \u00A78", ungeneratedNames));
+            sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "\u00A77Visit those areas (or run without \u00A7e" + FLAG_NO_GENERATE + "\u00A77) and convert again.");
         }
         if (!skippedNames.isEmpty()) {
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader
-                    + "Skipped gates: §8" + String.join("§7, §8", skippedNames));
+            sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "Skipped gates: \u00A78" + String.join("\u00A77, \u00A78", skippedNames));
         }
 
         WXTLogger.prettyLog(Level.INFO, false,
