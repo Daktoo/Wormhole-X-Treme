@@ -18,7 +18,9 @@ import de.luricos.bukkit.WormholeXTreme.Wormhole.utils.OfflineGateBuilder;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.utils.SqliteToMySqlImporter;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.utils.WXTLogger;
 import java.io.File;
-import java.io.FileReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -31,7 +33,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.command.Command;
@@ -77,8 +78,6 @@ public class WXConvertDB implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        // No argument keeps doing what it always did, so existing habits and
-        // any scripts calling it are not broken by the new subcommands.
         String sub = args.length == 0 ? SUB_NXT : args[0].toLowerCase();
 
         if (sub.equals(SUB_NXT) || sub.equals("json") || sub.equals("novyxtreme")) {
@@ -187,7 +186,7 @@ public class WXConvertDB implements CommandExecutor, TabCompleter {
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "Reading NovyXtreme database...");
 
         JsonArray gates;
-        try (FileReader reader = new FileReader(nxtFile)) {
+        try (Reader reader = Files.newBufferedReader(nxtFile.toPath(), StandardCharsets.UTF_8)) {
             gates = JsonParser.parseReader(reader).getAsJsonArray();
         } catch (Exception e) {
             sender.sendMessage(ConfigManager.MessageStrings.errorHeader
@@ -202,148 +201,109 @@ public class WXConvertDB implements CommandExecutor, TabCompleter {
             return;
         }
 
-        int total = gates.size();
-        int converted = 0;
-        int skipped = 0;
-        int ungenerated = 0;
-        List<String> skippedNames = new ArrayList<>();
-        List<String> ungeneratedNames = new ArrayList<>();
+        sender.sendMessage(ConfigManager.MessageStrings.normalHeader
+                + "Found " + gates.size() + " gate(s) to convert. Starting...");
 
         if (noGenerate) {
             sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "\u00A77Running with gates in unexplored terrain will be listed and left for a later run.");
-        }
-
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader
-                + "Found " + total + " gate(s) to convert. Starting...");
-
-        if (noGenerate) {
             runOfflineConversion(sender, gates, standardShape);
             return;
         }
 
-        for (int i = 0; i < total; i++) {
+        runOnlineConversion(sender, gates, standardShape);
+    }
+
+    private static void runOnlineConversion(CommandSender sender, JsonArray gates,
+            StargateShape standardShape) {
+        final List<PendingGate> pending = new ArrayList<>();
+        final List<String> unreadable = new ArrayList<>();
+
+        for (int i = 0; i < gates.size(); i++) {
             JsonObject obj = gates.get(i).getAsJsonObject();
-
-            String name        = obj.get("name").getAsString();
-            String ownerRaw    = obj.get("owner").getAsString();
-            String facingStr   = obj.get("facing").getAsString();
-            JsonObject leverJson = obj.get("leverBlock").getAsJsonObject();
-            int timesVisited   = obj.has("timesVisited") ? obj.get("timesVisited").getAsInt() : 0;
-
-            if (StargateManager.isStargate(name)) {
-                sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "\u00A77[" + (i + 1) + "/" + total + "] Skipping '\u00A7e" + name + "\u00A77' - gate already exists in WXT.");
-                skipped++;
-                skippedNames.add(name);
-                continue;
-            }
-
-            String ownerName = resolveOwnerName(ownerRaw);
-
-            World world;
-            double lx, ly, lz;
+            PendingGate g = new PendingGate();
             try {
-                String worldName = leverJson.get("world").getAsString();
-                world = Bukkit.getWorld(worldName);
-                if (world == null) {
-                    sender.sendMessage(ConfigManager.MessageStrings.errorHeader + "\u00A77[" + (i + 1) + "/" + total + "] Skipping '" + name + "' - world '" + worldName + "' is not loaded.");
-                    skipped++;
-                    skippedNames.add(name);
-                    continue;
-                }
-                lx = leverJson.get("x").getAsDouble();
-                ly = leverJson.get("y").getAsDouble();
-                lz = leverJson.get("z").getAsDouble();
+                g.name = obj.get("name").getAsString();
+                g.owner = resolveOwnerName(obj.get("owner").getAsString());
+                g.facing = BlockFace.valueOf(obj.get("facing").getAsString().toUpperCase());
+                JsonObject lever = obj.get("leverBlock").getAsJsonObject();
+                g.world = Bukkit.getWorld(lever.get("world").getAsString());
+                g.x = (int) Math.floor(lever.get("x").getAsDouble());
+                g.y = (int) Math.floor(lever.get("y").getAsDouble());
+                g.z = (int) Math.floor(lever.get("z").getAsDouble());
+                g.visits = obj.has("timesVisited") ? obj.get("timesVisited").getAsInt() : 0;
             } catch (Exception e) {
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader + "\u00A77[" + (i + 1) + "/" + total + "] Skipping '" + name + "'\u00A77 - bad lever block data: " + e.getMessage());
-                skipped++;
-                skippedNames.add(name);
+                unreadable.add(obj.has("name") ? obj.get("name").getAsString() : "(unnamed)");
                 continue;
             }
-
-            BlockFace facing;
-            try {
-                facing = BlockFace.valueOf(facingStr.toUpperCase());
-            } catch (IllegalArgumentException e) {
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader + "\u00A77[" + (i + 1) + "/" + total + "] Skipping '" + name + "'\u00A77 - unknown facing '" + facingStr + "'.");
-                skipped++;
-                skippedNames.add(name);
+            if (g.world == null) {
+                unreadable.add(g.name);
                 continue;
             }
-
-            Location leverLoc = new Location(world, lx, ly, lz);
-
-            // Everything past this point touches blocks, and touching a block
-            // in ungenerated terrain makes the server generate the chunk right
-            // there on the main thread. Across a couple of thousand gates that
-            // is what turns this command into a watchdog kill, so the check
-            // happens before the first getBlockAt rather than after.
-            if (noGenerate && !isAreaGenerated(world, leverLoc)) {
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader + "\u00A77[" + (i + 1) + "/" + total + "] Skipping '" + name + "' terrain there has never been generated.");
-                ungenerated++;
-                ungeneratedNames.add(name);
-                continue;
-            }
-
-            buildNxtGateStructure(world, leverLoc, facing);
-
-            Stargate s = StargateHelper.checkStargate(leverLoc.getBlock(), facing, standardShape);
-            if (s == null) {
-                sender.sendMessage(ConfigManager.MessageStrings.errorHeader + "\u00A77[" + (i + 1) + "/" + total + "] Skipping '" + name + "' - shape still not detectable, make sure the area is clear.");
-                skipped++;
-                skippedNames.add(name);
-                continue;
-            }
-
-            s.setGateName(name);
-            s.setGateOwner(ownerName);
-            s.setGateShape(standardShape);
-            s.setVisitCount(timesVisited);
-            s.setGateFacing(facing);
-            StargateManager.addGateToNetwork(s, "Public");
-            s.setGateNetwork(StargateManager.getStargateNetwork("Public"));
-
-            StargateManager.addStargate(s, StargateCreatedEvent.Cause.IMPORTED);
-            for (Location loc : s.getGateStructureBlocks()) {
-                StargateManager.addBlockIndex(world.getBlockAt(loc), s);
-            }
-            for (Location loc : s.getGatePortalBlocks()) {
-                StargateManager.addBlockIndex(world.getBlockAt(loc), s);
-            }
-            for (ArrayList<Location> layer : s.getGateLightBlocks()) {
-                for (Location loc : layer) {
-                    StargateManager.addBlockIndex(world.getBlockAt(loc), s);
+            g.chunkKey = (((long) (g.x >> 4)) << 32) ^ ((g.z >> 4) & 0xffffffffL);
+            pending.add(g);
+        }
+        pending.sort((a, b) -> Long.compare(a.chunkKey, b.chunkKey));
+        if (!unreadable.isEmpty()) {
+            sender.sendMessage(ConfigManager.MessageStrings.errorHeader + "Unreadable entries: \u00a78" + String.join("\u00a77, \u00a78", unreadable));
+        }
+        final int total = pending.size();
+        new BukkitRunnable() {
+            private int index = 0;
+            private int converted = 0;
+            private int skipped = 0;
+            private final List<String> skippedNames = new ArrayList<>();
+            @Override
+            public void run() {
+                int handled = 0;
+                while (index < total && handled < ONLINE_BATCH_SIZE) {
+                    PendingGate g = pending.get(index++);
+                    handled++;
+                    if (StargateManager.isStargate(g.name)) {
+                        skipped++;
+                        skippedNames.add(g.name + " (already in WXT)");
+                        continue;
+                    }
+                    Location leverLoc = new Location(g.world, g.x, g.y, g.z);
+                    buildNxtGateStructure(g.world, leverLoc, g.facing);
+                    Stargate s = StargateHelper.checkStargate(leverLoc.getBlock(), g.facing, standardShape);
+                    if (s == null) {
+                        skipped++;
+                        skippedNames.add(g.name + " (shape not detectable)");
+                        continue;
+                    }
+                    s.setGateName(g.name);
+                    s.setGateOwner(g.owner);
+                    s.setGateShape(standardShape);
+                    s.setVisitCount(g.visits);
+                    s.setGateFacing(g.facing);
+                    StargateManager.addGateToNetwork(s, "Public");
+                    s.setGateNetwork(StargateManager.getStargateNetwork("Public"));
+                    StargateManager.addStargate(s, StargateCreatedEvent.Cause.IMPORTED);
+                    indexGateBlocks(s, g.world);
+                    s.toggleDialLeverState(true);
+                    s.setupGateSign(true);
+                    StargateDBManager.stargateToSQL(s);
+                    converted++;
+                    if (converted % OFFLINE_PROGRESS_EVERY == 0) {
+                        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "  \u00a78" + index + "/" + total + "  \u00a77processed, \u00a72" + converted + "\u00a77 converted.");
+                    }
+                }
+                if (index >= total) {
+                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "Conversion complete \u00a73::");
+                    sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "\u00a72Converted: " + converted + "  \u00a78|  \u00a7eSkipped: " + skipped);
+                    if (!skippedNames.isEmpty()) {
+                        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "Skipped gates: \u00a78" + String.join("\u00a77, \u00a78", skippedNames));
+                    }
+                    WXTLogger.prettyLog(Level.INFO, false,
+                                        "[wxconvertdb] Conversion finished. Converted=" + converted + " Skipped=" + skipped + " Unreadable=" + unreadable.size());
+                    cancel();
                 }
             }
-            for (ArrayList<Location> layer : s.getGateWooshBlocks()) {
-                for (Location loc : layer) {
-                    StargateManager.addBlockIndex(world.getBlockAt(loc), s);
-                }
-            }
-
-            s.toggleDialLeverState(true);
-            s.setupGateSign(true);
-            StargateDBManager.stargateToSQL(s);
-
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "\u00A78[" + (i + 1) + "/" + total + "] \u00A72Converted \u00A77'\u00A7e" + name + "\u00A77' (owner: \u00A7b" + ownerName + "\u00A77, visits: \u00A7a" + timesVisited + "\u00A77)");
-            converted++;
-        }
-
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "Conversion complete \u00A73::");
-        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "\u00A72Converted: " + converted + "  \u00A78|  \u00A7eSkipped: " + skipped);
-        if (ungenerated > 0) {
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader + "Left in unexplored terrain: \u00A78" + String.join("\u00A77, \u00A78", ungeneratedNames));
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "\u00A77Visit those areas (or run without \u00A7e" + FLAG_NO_GENERATE + "\u00A77) and convert again.");
-        }
-        if (!skippedNames.isEmpty()) {
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "Skipped gates: \u00A78" + String.join("\u00A77, \u00A78", skippedNames));
-        }
-
-        WXTLogger.prettyLog(Level.INFO, false,
-                "[wxconvertdb] Conversion finished. Converted=" + converted + " Skipped=" + skipped
-                + " Ungenerated=" + ungenerated);
+        }.runTaskTimer(WormholeXTreme.getThisPlugin(), 1L, 1L);
     }
 
     /** How many gates are handled per tick. Small enough to stay invisible. */
+    private static final int ONLINE_BATCH_SIZE = 4;
     private static final int OFFLINE_BATCH_SIZE = 10;
     /** How often to report progress, in gates. */
     private static final int OFFLINE_PROGRESS_EVERY = 50;
@@ -424,7 +384,7 @@ public class WXConvertDB implements CommandExecutor, TabCompleter {
             private int index = 0;
             private int converted = 0;
             private int skipped = 0;
-            private int ungenerated = 0;
+            private final List<String> ungeneratedNames = new ArrayList<>();
             private int pillarless = 0;
             private final List<String> rejected = new ArrayList<>();
             private final List<String> obstructed = new ArrayList<>();
@@ -441,8 +401,7 @@ public class WXConvertDB implements CommandExecutor, TabCompleter {
                         continue;
                     }
                     if (!g.world.isChunkGenerated(g.x >> 4, g.z >> 4)) {
-                        ungenerated++;
-                        rejected.add(g.name + " (unexplored)");
+                        ungeneratedNames.add(g.name);
                         continue;
                     }
 
@@ -479,7 +438,7 @@ public class WXConvertDB implements CommandExecutor, TabCompleter {
                 }
 
                 if (index >= pending.size()) {
-                    report(sender, converted, skipped, ungenerated, pillarless, rejected, obstructed);
+                    report(sender, converted, skipped, ungeneratedNames, pillarless, rejected, obstructed);
                     cancel();
                 }
             }
@@ -505,8 +464,10 @@ public class WXConvertDB implements CommandExecutor, TabCompleter {
         }
     }
 
-    private static void report(CommandSender sender, int converted, int skipped, int ungenerated,
-            int pillarless, List<String> rejected, List<String> obstructed) {
+    private static void report(CommandSender sender, int converted, int skipped,
+                              List<String> ungeneratedNames, int pillarless, List<String> rejected,
+                              List<String> obstructed) {
+        int ungenerated = ungeneratedNames.size();
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "Offline conversion complete \u00a73::");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader
                 + "\u00a72Recorded: " + converted
@@ -518,8 +479,8 @@ public class WXConvertDB implements CommandExecutor, TabCompleter {
                     + " nothing will rebuild them.");
         }
         if (ungenerated > 0) {
-            sender.sendMessage(ConfigManager.MessageStrings.normalHeader
-                    + "\u00a77" + ungenerated + " gate(s) sit in unexplored terrain and were left alone.");
+            sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "\u00a77" + ungenerated + " gate(s) sit in unexplored terrain and were left alone: \u00a78" + String.join("\u00a77, \u00a78", ungeneratedNames));
+            sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "\u00a77Visit those areas and convert again.");
         }
         if (!obstructed.isEmpty()) {
             sender.sendMessage(ConfigManager.MessageStrings.errorHeader
@@ -558,29 +519,6 @@ public class WXConvertDB implements CommandExecutor, TabCompleter {
         {false, true,  false, false, false, true,  false},
         {false, false, true,  true,  true,  false, false}
     };
-
-    /**
-     * Whether every chunk the gate structure could touch already exists on
-     * disk. The structure reaches a few blocks either side of the lever, so
-     * the corners of a 16-block box around it are checked rather than just the
-     * lever's own chunk.
-     *
-     * isChunkGenerated does not load or create anything, which is the whole
-     * point: asking the question has to be cheaper than the work it avoids.
-     */
-    private static boolean isAreaGenerated(World world, Location leverLoc) {
-        int x = leverLoc.getBlockX();
-        int z = leverLoc.getBlockZ();
-        for (int dx = -16; dx <= 16; dx += 16) {
-            for (int dz = -16; dz <= 16; dz += 16) {
-                if (!world.isChunkGenerated((x + dx) >> 4, (z + dz) >> 4)) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
     private static void buildNxtGateStructure(World world, Location leverLoc, BlockFace facing) {
         int lx = leverLoc.getBlockX();
         int ly = leverLoc.getBlockY();
@@ -588,7 +526,6 @@ public class WXConvertDB implements CommandExecutor, TabCompleter {
 
         for (int row = 0; row < NXT_SHAPE.length; row++) {
             for (int col = 0; col < NXT_SHAPE[row].length; col++) {
-                Material mat = NXT_SHAPE[row][col] ? Material.OBSIDIAN : Material.AIR;
                 int wx, wy, wz;
                 wy = ly - 1 + row;
                 switch (facing) {
@@ -612,7 +549,7 @@ public class WXConvertDB implements CommandExecutor, TabCompleter {
                         continue;
                 }
                 if (NXT_SHAPE[row][col]) {
-                    world.getBlockAt(wx, wy, wz).setType(mat);
+                    world.getBlockAt(wx, wy, wz).setType(Material.OBSIDIAN);
                 }
             }
         }
