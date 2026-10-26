@@ -1,9 +1,9 @@
 name: WormholeXTreme
 main: de.luricos.bukkit.WormholeXTreme.Wormhole.WormholeXTreme
 version: 1.1.6-DEV
-api-version: 1.20
+api-version: '1.20'
 authors: [Lologarithm, alron, lycano, Dakto_]
-softdepend: [PermissionsEx, WormholeXTremeWorlds, Help]
+softdepend: [Vault, Essentials, EconomyPlus, PermissionsEx, WormholeXTremeWorlds, Help]
 description: Wormhole X-Treme! Wormholes as travel portals. Splash Effect, IDC, Iris, configurable Wormhole materials, and much much more.
 commands:
   dial:
