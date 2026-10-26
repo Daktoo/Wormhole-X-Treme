@@ -128,9 +128,9 @@ public class Configuration {
             if (!missing.isEmpty()) {
                 WXTLogger.prettyLog(Level.INFO, false, "Adding new settings to Settings.txt: " + String.join(", ", missing));   
             }
-            if (rewrite) {
-                writeFile(desc);
-            }
+        }
+        if (rewrite) {
+            writeFile(desc);
         }
     }
     private static List<String> missingSettings(File file) {
