@@ -3,6 +3,7 @@ package de.luricos.bukkit.WormholeXTreme.Wormhole.listeners;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.WormholeXTreme;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.config.ConfigManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.events.StargateMinecartTeleportEvent;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.WormholeHazards;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.Stargate;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.permissions.StargateRestrictions;
@@ -53,7 +54,9 @@ public class WormholeXTremeVehicleListener implements Listener {
                     return false;
                 }
                 if (st.getGateTarget().isGateIrisActive()) {
-                    p.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Remote Iris is locked!");
+                    if (!WormholeHazards.killPassengerAtIris(veh, st)) {
+                        p.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Remote Iris is locked!");
+                    }
                     veh.teleport(st.getGateMinecartTeleportLocation() != null ? st.getGateMinecartTeleportLocation() : st.getGatePlayerTeleportLocation());
                     if (ConfigManager.getTimeoutShutdown() == 0) {
                         st.shutdownStargate(true);
@@ -71,6 +74,7 @@ public class WormholeXTremeVehicleListener implements Listener {
                 }
             } else if (st.getGateTarget().isGateIrisActive()) {
                 WXTLogger.prettyLog(Level.FINE, false, "Minecart in gate:" + st.getGateName() + " gate Active: " + st.isGateActive() + " Target Gate: " + st.getGateTarget().getGateName() + " Network: " + gatenetwork);
+                WormholeHazards.killPassengersAtIris(veh, st);
                 veh.teleport(st.getGateMinecartTeleportLocation() != null ? st.getGateMinecartTeleportLocation() : st.getGatePlayerTeleportLocation());
                 if (ConfigManager.getTimeoutShutdown() == 0) {
                     st.shutdownStargate(true);

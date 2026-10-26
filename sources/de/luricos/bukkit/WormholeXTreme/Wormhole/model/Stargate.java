@@ -4,12 +4,16 @@ import de.luricos.bukkit.WormholeXTreme.Wormhole.WormholeXTreme;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.config.ConfigManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.exceptions.WormholeDialSignException;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.StargateUpdateRunnable;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.WormholeHazards;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.player.WormholePlayer;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.player.WormholePlayerManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.utils.WXTLogger;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.utils.WorldUtils;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 import java.util.logging.Level;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -87,6 +91,7 @@ public class Stargate {
     private boolean gateChevronsLocked = false;
     private boolean gateEstablishedWormhole = false;
     private boolean stargateIsValid = true;
+    private final transient Set<UUID> kawooshVictims = new HashSet<>();
 
     public void animateOpening() {
         if (!isGateLightsActive()) {
@@ -107,8 +112,10 @@ public class Stargate {
             ArrayList<Location> wooshBlockStep = getGateWooshBlocks().get(getGateAnimationStep3D());
             if (!isGateAnimationRemoving()) {
                 if (wooshBlockStep != null) {
+                    ArrayList<Block> struckBlocks = new ArraryList<>(wooshBlockStep.size());
                     for (Location l : wooshBlockStep) {
                         Block b = getGateWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ());
+                        struckBlocks.add(b);
                         getGateAnimatedBlocks().add(b);
                         StargateManager.getOpeningAnimationBlocks().put(l, b);
                         b.setType(wooshMaterial, false);
@@ -126,6 +133,7 @@ public class Stargate {
                             }
                         }
                     }
+                    WormholeHazards.strikeWithKawoosh(this, struckBlocks);
                     WXTLogger.prettyLog(Level.FINER, false, getGateName() + " Woosh Adding: " + getGateAnimationStep3D() + " Woosh Block Size: " + wooshBlockStep.size());
                 }
                 if (getGateWooshBlocks().size() == getGateAnimationStep3D() + 1) {
@@ -160,6 +168,7 @@ public class Stargate {
             return;
         }
         if (getGateAnimationStep2D() == 0 && wooshDepth > 0) {
+            ArrayList<Block> struckBlocks = new ArrayList<>(getGatePortalBlocks().size());
             for (Location block : getGatePortalBlocks()) {
                 Block r = getGateWorld().getBlockAt(block.getBlockX(), block.getBlockY(), block.getBlockZ()).getRelative(getGateFacing());
                 r.setType(wooshMaterial, false);
@@ -179,7 +188,9 @@ public class Stargate {
                 
                 getGateAnimatedBlocks().add(r);
                 StargateManager.getOpeningAnimationBlocks().put(r.getLocation(), r);
+                struckBlocks.add(r);
             }
+            WormholeHazards.strikeWithKawoosh(this, struckBlocks);
             setGateAnimationStep2D(getGateAnimationStep2D() + 1);
             scheduleWooshStep(4L);
             return;
@@ -187,6 +198,7 @@ public class Stargate {
         if (getGateAnimationStep2D() < wooshDepth) {
             int size = getGateAnimatedBlocks().size();
             int start = getGatePortalBlocks().size();
+            ArrayList<Block> struckBlocks = new ArrayList<>(start);
             for (int i = size - start; i < size; i++) {
                 Block r2 = getGateAnimatedBlocks().get(i).getRelative(getGateFacing());
                 r2.setType(wooshMaterial, false);
@@ -206,7 +218,9 @@ public class Stargate {
                 
                 getGateAnimatedBlocks().add(r2);
                 StargateManager.getOpeningAnimationBlocks().put(r2.getLocation(), r2);
+                struckBlocks.add(r2);
             }
+            WormholeHazards.strikeWithKawoosh(this, struckBlocks);
             setGateAnimationStep2D(getGateAnimationStep2D() + 1);
             if (getGateAnimationStep2D() == wooshDepth) {
                 scheduleWooshStep(8L);
@@ -392,6 +406,8 @@ public class Stargate {
             setWormholeEstablished(true);
             getGateTarget().setWormholeEstablished(true);
             WXTLogger.prettyLog(Level.FINER, false, "Chevrons locked on both sides. Starting thread ANIMATE_WOOSH.");
+            getKawooshVictims().clear();
+            getGateTarget().getKawooshVictims().clear();
             scheduleWooshStep(1L);
             getGateTarget().scheduleWooshStep(1L);
             return;
@@ -484,11 +500,15 @@ public class Stargate {
             }
         }
         getGateAnimatedBlocks().clear();
+        getKawooshVictims().clear();
         setGateAnimationStep2D(0);
         setGateAnimationStep3D(1);
         setGateAnimationRemoving(false);
     }
-
+    public Set<UUID> getKawooshVictims() {
+        return this.kawooshVictims;
+    }
+    
     public int getGateAnimationStep2D() {
         return this.gateAnimationStep2D;
     }

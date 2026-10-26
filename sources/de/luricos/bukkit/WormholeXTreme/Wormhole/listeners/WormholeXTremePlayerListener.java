@@ -2,6 +2,7 @@ package de.luricos.bukkit.WormholeXTreme.Wormhole.listeners;
 
 import de.luricos.bukkit.WormholeXTreme.Wormhole.config.ConfigManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.StargateHelper;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.WormholeHazards;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.Stargate;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateDBManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateManager;
@@ -343,6 +344,14 @@ public class WormholeXTremePlayerListener implements Listener {
                         StargateRestrictions.addPlayerUseCooldown(player);
                     }
                     if (stargate.getGateTarget().isGateIrisActive() && !wormholePlayer.getProperties().hasReceivedIrisLockMessage()) {
+                        if (WormholeHazards.shouldIrisKill(player)) {
+                            wormholePlayer.removeStargate(stargate);
+                            WormholeHazards.killAtIris(player, stargate);
+                            if (ConfigManager.getTimeoutShutdown() == 0) {
+                                stargate.shutdownStargate(true);
+                            }
+                            return null;
+                        }
                         player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Remote Iris is locked!");
                         wormholePlayer.getProperties().setHasReceivedIrisLockMessage(true);
                         kickPlayerBackFromGate(event, player, stargate);

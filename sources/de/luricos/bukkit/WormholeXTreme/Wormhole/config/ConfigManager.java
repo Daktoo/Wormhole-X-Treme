@@ -33,6 +33,9 @@ public class ConfigManager {
         WORMHOLE_KICKBACK_BLOCK_COUNT,
         WORMHOLE_MAX_GATE_NAME_LENGTH,
         WORMHOLE_MINIMUM_GATE_DISTANCE,
+        WORMHOLE_DANGEROUS_KAWOOSH,
+        WORMHOLE_KAWOOSH_DAMAGE,
+        WORMHOLE_DEADLY_IRIS,
         PERMISSIONS_BACKEND,
         ECONOMY_ENABLED,
         ALLOW_DESTINATION_GATE_SHUTDOWN,
@@ -232,6 +235,21 @@ public class ConfigManager {
         setConfigValue(ConfigKeys.WORMHOLE_MINIMUM_GATE_DISTANCE, Integer.valueOf(minimumDistance));
     }
 
+    public static boolean isDangerousKawooshEnabled() {
+        Setting dk = getConfiguration().get(ConfigKeys.WORMHOLE_DANGEROUS_KAWOOSH);
+        return dk != null && dk.getValue() instanceof Boolean && dk.getBooleanValue();
+    }
+    public static double getKawooshDamage() {
+        Setting kd = getConfiguration().get(ConfigKeys.WORMHOLE_KAWOOSH_DAMAGE);
+        if (kd != null && kd.getValue() instanceof Number) {
+            return Math.max(0.0d, ((Number) kd.getValue()).doubleValue());
+        }
+        return 10.0d;
+    }
+    public static boolean isDeadlyIrisEnabled() {
+        Setting di = getConfiguration().get(ConfigKeys.WORMHOLE_DEADLY_IRIS);
+        return di != null && di.getValue() instanceof Boolean && di.getBooleanValue();
+    }
     /**
      * When true, a player standing at the receiving end of an open wormhole may
      * close it with the dial lever/button, instead of being told the gate is

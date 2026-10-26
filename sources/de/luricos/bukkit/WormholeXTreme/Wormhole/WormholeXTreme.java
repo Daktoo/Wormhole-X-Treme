@@ -29,6 +29,7 @@ import de.luricos.bukkit.WormholeXTreme.Wormhole.listeners.WormholeXTremeServerL
 import de.luricos.bukkit.WormholeXTreme.Wormhole.listeners.WormholeXTremeShapeListener;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.listeners.WormholeXTremeVehicleListener;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.StargateHelper;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.WormholeHazards;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.Stargate;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateDBManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateManager;
@@ -59,6 +60,7 @@ public class WormholeXTreme extends JavaPlugin {
     private static final WormholeXTremeServerListener serverListener = new WormholeXTremeServerListener();
     private static final WormholeXTremeShapeListener shapeListener = new WormholeXTremeShapeListener();
     private static final WormholeXTremeRedstoneListener redstoneListener = new WormholeXTremeRedstoneListener();
+    private static final WormholeHazards hazardsListener = new WormholeHazards();
     private static WorldHandler worldHandler = null;
     private static BukkitScheduler scheduler = null;
 
@@ -301,6 +303,7 @@ public class WormholeXTreme extends JavaPlugin {
         Bukkit.getServer().getPluginManager().registerEvents(vehicleListener, wxt);
         Bukkit.getServer().getPluginManager().registerEvents(entityListener, wxt);
         Bukkit.getServer().getPluginManager().registerEvents(shapeListener, wxt);
+        Bukkit.getServer().getPluginManager().registerEvents(hazardsListener, wxt);
     }
 
     protected static void setScheduler(BukkitScheduler scheduler2) {
