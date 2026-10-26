@@ -188,6 +188,7 @@ jobs:
                 ""|"$rev"-*) ;;
                 *) label="$rev (built as ${apiversion%%-*})" ;;
               esac
-              echo "| $rev | $java | $compile_text | $(describe "$smoke") |"
+              echo "| $label | $java | $compile_text | $(describe "$smoke") |"
             done
             echo
+          } >> "$GITHUB_STEP_SUMMARY"
