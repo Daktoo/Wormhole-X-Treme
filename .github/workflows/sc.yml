@@ -1,0 +1,181 @@
+# For testing if WXT works on spigot versions 1.20.4 up to 26.3
+
+name: WSVT
+on:
+  push:
+    paths:
+      - 'sources/**'
+      - 'resources/**'
+      - 'pom.xml'
+      - '.github/**'
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 6 * * 1'
+permissions:
+  contents: read
+concurrency:
+  group: sc-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    name: Spigot ${{ matrix.rev }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { rev: '1.20.4', java: '17' }
+          - { rev: '1.20.5', java: '21' }
+          - { rev: '1.20.6', java: '21' }
+          - { rev: '1.21', java: '21' }
+          - { rev: '1.21.1', java: '21' }
+          - { rev: '1.21.2', java: '21' }
+          - { rev: '1.21.3', java: '21' }
+          - { rev: '1.21.4', java: '21' }
+          - { rev: '1.21.5', java: '21' }
+          - { rev: '1.21.6', java: '21' }
+          - { rev: '1.21.7', java: '21' }
+          - { rev: '1.21.8', java: '21' }
+          - { rev: '1.21.9', java: '21' }
+          - { rev: '1.21.10', java: '21' }
+          - { rev: '1.21.11', java: '21' }
+          - { rev: '26.1', java: '25' }
+          - { rev: '26.1.1', java: '25' }
+          - { rev: '26.1.2', java: '25' }
+          - { rev: '26.2', java: '25' }
+          - { rev: '26.3', java: '25' }
+    env:
+      REV: ${{ matrix.rev }}
+    steps:
+      - name: Checkout WXT
+        uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+      - name: Workout cache period
+        id: period
+        run: |
+          echo "month=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
+          echo "SPIGOT_DIR=$HOME/spigot-build" >> "$GITHUB_ENV"
+      - name: Restore Spigot
+        id: spigot-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/spigot-build/server
+            ~/.m2/repository/org/spigotmc
+          key: spigot-${{ matrix.rev }}-java${{ matrix.java }}-${{ steps.period.outputs.month }}
+      - name: Build Spigot
+        id: buildtools
+        if: steps.spigot-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p "$SPIGOT_DIR"
+          cd "$SPIGOT_DIR"
+          curl -fsSL -o BuildTools.jar \
+            https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
+          java -jar BuildTools.jar --rev "$REV" --output-dir server --final-name spigot.jar
+          ls -l server
+      - name: Find Spigot api
+        id: api
+        run: |
+          shopt -s nullglob
+          api_dir="$HOME/.m2/repository/org/spigotmc/spigot-api"
+          names=()
+          for d in "$api_dir/$REV"-*/; do
+            names+=("$(basename "$d")")
+          done
+          version=$(printf '%s\n' "${names[@]}" | sort -V | tail -n 1)
+          if [ -z "$version" ]; then
+            found=()
+            for d in "$api_dir"/*/; do found+=("$(basename "$d")"); done
+            echo "::error:: No spigot-api found for $REV in $api_dir, found: ${found[*]:-nothing}"
+            exit 1
+          fi
+          echo "Compiling $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Compile WXT against Spigot
+        id: compile
+        run: mvn -B -ntp clean package -Dspigot.version="${{ steps.api.outputs.version }}"
+      - name: Run WXT on spigot server
+        id: smoke
+        env:
+          SMOKE_DIR: ${{ runner.temp }}/smoke-server
+          SUMMARY_FILE: ${{ github.step_summary }}
+        run: |
+          plugin_jar=""
+          for f in target/WormholeXTreme-*.jar; do
+            case "$f" in
+              *-sources.jar|*-javadoc.jar) ;;
+              *) plugin_jar=$f; break ;;
+            esac
+          done
+          bash .github/scripts/swt.sh "$SPIGOT_DIR/server/spigot.jar" "$plugin_jar" "$REV"
+      - name: Log result
+        if: always()
+        run: |
+          mkdir -p results
+          echo "${REV}|${{ matrix.java }}|${{ steps.buildtools.outcome }}|${{ steps.api.outcome }}|${{ steps.compile.outcome }}|${{ steps.smoke.outcome }}" > "results/${REV}.txt"
+      - name: Upload result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: result-${{ matrix.rev }}
+          path: results/${{ matrix.rev }}.txt
+          retention-days: 7
+      - name: Upload server log
+        if: always() && steps.smoke.outcome != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-spigot-${{ matrix.rev }}
+          path: |
+            ${{ runner.temp }}/smoke-server/server.log
+            ${{ runner.temp }}/smoke-server/commands.log
+            ${{ runner.temp }}/smoke-server/problems.txt
+            ${{ runner.temp }}/smoke-server/warnings.txt
+            ${{ runner.temp }}/smoke-server/plugins/WormholeXTreme/Settings.txt
+          if-no-files-found: ignore
+          retention-days: 14
+  summary:
+    name: Results table
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Collect results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: result-*
+          path: results
+          merge-multiple: true
+      - name: Write result table
+        run: |
+          describe() {
+            case "$1" in
+              success) echo "pass" ;;
+              failure) echo "fail" ;;
+              cancelled) echo "cancelled" ;;
+              *) echo "not run" ;;
+            esac
+          }
+          {
+            echo "| Spigot | Java | Compiles | Runs on server |"
+            echo "|---|---|---|---|"
+            shopt -s nullglob
+            files=(results/*.txt)
+            mapfile -t files < <(printf '%s\n' "${files[@]}" | sort -V)
+            for f in "${files[@]}"; do
+              [ -f "$f" ] || continue
+              IFS='|' read -r rev java buildtools api compile smoke < "$f"
+              if [ "$buildtools" = "failure" ] || [ "$api" = "failure" ]; then
+                compile_text="build fail"
+              else
+                compile_text=$(describe "$compile")
+              fi
+              echo "| $rev | $java | $compile_text | $(describe "$smoke") |"
+            done
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
