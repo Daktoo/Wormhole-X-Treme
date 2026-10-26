@@ -1,6 +1,6 @@
-# Wormhole X-Treme v1.1.6
+# Wormhole X-Treme v1.1.7
 
-**Tested on 1.21.11 and 26.2**
+**Tested on 1.20.4 up to 26.3**
 
 ## New Install:
 

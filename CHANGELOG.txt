@@ -1,3 +1,18 @@
+Changes 1.1.7 (26/10/26 @ 10:10 GMT)
+- Added `/wxshape` to manage gate shapes within game chat.
+- Added a toggle to enable/disable gate shapes in each config. Shapes can also be toggled on or off with the `/wxshape` command. Non-canon gates disabled by default.
+- Added Super and SuperSignDial gate shape
+- Added `/wxlist network' and '/wxlist player' for better filtering
+- Added MySQL and MariaDB support. (Experimental)
+- Added sqlite option to `/wxconvertdb` for converting to MySQL.
+- Added a `nogenerate` option to `/wxconvertdb nxt`. (Experimental)
+- Added Permissions.txt for servers without a dedicated permissions plugin.
+- Added ALLOW_DESTINATION_GATE_SHUTDOWN so players on the destination end of a stargate can shutdown the wormhole.
+- `/wxgo` now checks for an IDC
+- Breaking a gate's name sign, iris lever or DHD pillar no longer deletes the gate.
+- Added support for 1.20 versions
+- Fixed woosh leaving its material behind after gate shutdown
+
 Changes 1.1.6 (14/8/26 @ 14:25 BST)
 - Added a configurable minimum distance between stargates. Default is 0 blocks, which disables the check. Set it with `/wormhole min_gate_distance <blocks>`, or via WORMHOLE_MINIMUM_GATE_DISTANCE in Settings.txt.
 - Gates already standing closer together than the configured minimum are never removed. The rule only applies when a gate is built, and a rejected build is refused before the player is charged.
