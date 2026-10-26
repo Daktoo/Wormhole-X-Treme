@@ -84,14 +84,22 @@ jobs:
         run: |
           shopt -s nullglob
           api_dir="$HOME/.m2/repository/org/spigotmc/spigot-api"
+          found=()
+          for d in "$api_dir"/*/; do
+            found+=("$(basename "$d")")
+          done
           names=()
-          for d in "$api_dir/$REV"-*/; do
-            names+=("$(basename "$d")")
+          for v in "${found[@]}"; do
+            case "$v" in
+              "$REV"-*) names+=("$v") ;;
+            esac
           done
           version=$(printf '%s\n' "${names[@]}" | sort -V | tail -n 1)
+          if [ -z "$version" ] && [ "${#found[@]}" -eq 1 ]; then
+            version=${found[0]}
+            echo "warning title=Spigot $REV"
+          fi
           if [ -z "$version" ]; then
-            found=()
-            for d in "$api_dir"/*/; do found+=("$(basename "$d")"); done
             echo "::error:: No spigot-api found for $REV in $api_dir, found: ${found[*]:-nothing}"
             exit 1
           fi
@@ -118,7 +126,7 @@ jobs:
         if: always()
         run: |
           mkdir -p results
-          echo "${REV}|${{ matrix.java }}|${{ steps.buildtools.outcome }}|${{ steps.api.outcome }}|${{ steps.compile.outcome }}|${{ steps.smoke.outcome }}" > "results/${REV}.txt"
+          echo "${REV}|${{ matrix.java }}|${{ steps.buildtools.outcome }}|${{ steps.api.outcome }}|${{ steps.compile.outcome }}|${{ steps.smoke.outcome }}|${{ steps.api.outputs.version }}" > "results/${REV}.txt"
       - name: Upload result
         if: always()
         uses: actions/upload-artifact@v4
@@ -169,13 +177,17 @@ jobs:
             mapfile -t files < <(printf '%s\n' "${files[@]}" | sort -V)
             for f in "${files[@]}"; do
               [ -f "$f" ] || continue
-              IFS='|' read -r rev java buildtools api compile smoke < "$f"
+              IFS='|' read -r rev java buildtools api compile smoke apiversion < "$f"
               if [ "$buildtools" = "failure" ] || [ "$api" = "failure" ]; then
                 compile_text="build fail"
               else
                 compile_text=$(describe "$compile")
               fi
+              label=$rev
+              case "$apiversion" in
+                ""|"$rev"-*) ;;
+                *) label="$rev (built as ${apiversion%%-*})" ;;
+              esac
               echo "| $rev | $java | $compile_text | $(describe "$smoke") |"
             done
             echo
-          } >> "$GITHUB_STEP_SUMMARY"
