@@ -63,7 +63,7 @@ public class WormholeHazards implements Listener {
             if (victim.getNoDamageTicks() > victim.getMaximumNoDamageTicks() / 2) {
                 continue;
             }
-            alreadyStuck.add(victim.getUniqueId());
+            alreadyStruck.add(victim.getUniqueId());
             if (victim instanceof Player) {
                 ((Player) victim).sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "You were caught in an unstable vortex!");
             }
@@ -159,7 +159,7 @@ public class WormholeHazards implements Listener {
         try {
             victim.damage(amount);
         } finally {
-            pendingDeathMessages.remove(player.getUniqueId());
+            pendingDeathMessages.remove(victim.getUniqueId());
         }
     }
     private static void kill(Player player, String deathMessage) {

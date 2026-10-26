@@ -112,7 +112,7 @@ public class Stargate {
             ArrayList<Location> wooshBlockStep = getGateWooshBlocks().get(getGateAnimationStep3D());
             if (!isGateAnimationRemoving()) {
                 if (wooshBlockStep != null) {
-                    ArrayList<Block> struckBlocks = new ArraryList<>(wooshBlockStep.size());
+                    ArrayList<Block> struckBlocks = new ArrayList<>(wooshBlockStep.size());
                     for (Location l : wooshBlockStep) {
                         Block b = getGateWorld().getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ());
                         struckBlocks.add(b);
@@ -508,7 +508,7 @@ public class Stargate {
     public Set<UUID> getKawooshVictims() {
         return this.kawooshVictims;
     }
-    
+
     public int getGateAnimationStep2D() {
         return this.gateAnimationStep2D;
     }

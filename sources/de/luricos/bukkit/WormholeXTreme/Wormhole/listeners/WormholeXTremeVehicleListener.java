@@ -54,7 +54,7 @@ public class WormholeXTremeVehicleListener implements Listener {
                     return false;
                 }
                 if (st.getGateTarget().isGateIrisActive()) {
-                    if (!WormholeHazards.killPassengerAtIris(veh, st)) {
+                    if (!WormholeHazards.killPassengersAtIris(veh, st)) {
                         p.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Remote Iris is locked!");
                     }
                     veh.teleport(st.getGateMinecartTeleportLocation() != null ? st.getGateMinecartTeleportLocation() : st.getGatePlayerTeleportLocation());

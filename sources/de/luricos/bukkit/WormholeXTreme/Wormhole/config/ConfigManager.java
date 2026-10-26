@@ -236,18 +236,18 @@ public class ConfigManager {
     }
 
     public static boolean isDangerousKawooshEnabled() {
-        Setting dk = getConfiguration().get(ConfigKeys.WORMHOLE_DANGEROUS_KAWOOSH);
+        Setting dk = getConfigurations().get(ConfigKeys.WORMHOLE_DANGEROUS_KAWOOSH);
         return dk != null && dk.getValue() instanceof Boolean && dk.getBooleanValue();
     }
     public static double getKawooshDamage() {
-        Setting kd = getConfiguration().get(ConfigKeys.WORMHOLE_KAWOOSH_DAMAGE);
+        Setting kd = getConfigurations().get(ConfigKeys.WORMHOLE_KAWOOSH_DAMAGE);
         if (kd != null && kd.getValue() instanceof Number) {
             return Math.max(0.0d, ((Number) kd.getValue()).doubleValue());
         }
         return 10.0d;
     }
     public static boolean isDeadlyIrisEnabled() {
-        Setting di = getConfiguration().get(ConfigKeys.WORMHOLE_DEADLY_IRIS);
+        Setting di = getConfigurations().get(ConfigKeys.WORMHOLE_DEADLY_IRIS);
         return di != null && di.getValue() instanceof Boolean && di.getBooleanValue();
     }
     /**
