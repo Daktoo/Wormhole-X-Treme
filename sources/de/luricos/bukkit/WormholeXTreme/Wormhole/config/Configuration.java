@@ -11,6 +11,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import org.bukkit.plugin.PluginDescriptionFile;
@@ -120,9 +122,37 @@ public class Configuration {
         } catch (IOException e2) {
             WXTLogger.prettyLog(Level.SEVERE, false, "Failed to read fiele: " + e2.getMessage());
         }
-        if (invalidFile(options, desc)) {
-            writeFile(desc);
+        boolean rewrite = invalidFile(options, desc);
+        if (!rewrite) {
+            List<String> missing = missingSettings(options);
+            if (!missing.isEmpty()) {
+                WXTLogger.prettyLog(Level.INFO, false, "Adding new settings to Settings.txt: " + String.join(", ", missing));   
+            }
+            if (rewrite) {
+                writeFile(desc);
+            }
         }
+    }
+    private static List<String> missingSettings(File file) {
+        Set<String> present = new HashSet<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.startsWith("Setting: ")) {
+                    present.add(line.substring("Setting: ".length()).trim());
+                }
+            }
+        } catch (IOException e) {
+            WXTLogger.prettyLog(Level.WARNING, false, "Could not check Settings.txt for new settings: " + e.getMessage());
+            return new ArrayList<>();
+        }
+        List<String> missing = new ArrayList<>();
+        for (Setting element : DefaultSettings.config) {
+            if (!present.contains(element.getName().toString())) {
+                missing.add(element.getName().toString());
+            }
+        }
+        return missing;
     }
 
     private static void writeFile(File file, PluginDescriptionFile desc, Setting[] config) {
