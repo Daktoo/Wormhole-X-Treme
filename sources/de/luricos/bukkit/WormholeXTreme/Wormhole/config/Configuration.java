@@ -126,7 +126,8 @@ public class Configuration {
         if (!rewrite) {
             List<String> missing = missingSettings(options);
             if (!missing.isEmpty()) {
-                WXTLogger.prettyLog(Level.INFO, false, "Adding new settings to Settings.txt: " + String.join(", ", missing));   
+                WXTLogger.prettyLog(Level.INFO, false, "Adding new settings to Settings.txt: " + String.join(", ", missing));
+                rewrite = true;
             }
         }
         if (rewrite) {
