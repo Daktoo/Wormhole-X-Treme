@@ -1,4 +1,4 @@
-package de.luricos.bukkit.WormholeXTreme.listeners;
+package de.luricos.bukkit.WormholeXTreme.Wormhole.listeners;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.config.ConfigManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.BonusGates;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.DestinyController;

@@ -110,6 +110,6 @@ public final class BuiltInShapes {
         };
     }
     public static boolean isBuiltInName(String name) {
-        return name != null && (name.equalIsIgnoreCase(PEGASUS) || name.equalsIgnoreCase(DESTINY));
+        return name != null && (name.equalsIgnoreCase(PEGASUS) || name.equalsIgnoreCase(DESTINY));
     }
 }
