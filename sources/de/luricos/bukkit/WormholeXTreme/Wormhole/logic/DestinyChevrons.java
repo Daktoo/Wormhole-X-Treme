@@ -207,7 +207,7 @@ public final class DestinyChevrons {
                 this.pause--;
                 return;
             }
-            int n = this.ring.blocks.size()
+            int n = this.ring.blocks.size();
             if (!this.locked.contains(this.position)) {
                 setLit(this.gate, this.ring.blocks.get(this.position), false);
             }

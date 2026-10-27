@@ -43,7 +43,7 @@ public final class BonusGates {
         if (kind == GateKind.DESTINY) {
             Block buildSwitch = gate.getGateDialLeverBlock();
             if (buildSwitch != null && (buildSwitch.getType() == MATERIAL.LEVER || Tag.BUTTONS.isTagged(buildSwitch.getType()))) {
-                buildSwitch.setType(Material.AIR);)
+                buildSwitch.setType(Material.AIR);
             }
         } else if (kind == GateKind.PEGASUS && player != null) {
             player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Pegasus gate linked.");

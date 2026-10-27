@@ -55,7 +55,7 @@ public final class BuiltInShapes {
             "STARGATE_MATERIAL=DEEPSLATE_TILES",
             "ACTIVE_MATERIAL=SEA_LANTERN",
             "REDSTONE_ACTIVATED=FALSE"
-        }
+        };
     }
     public static String[] destiny() {
         return new String[] {
@@ -107,7 +107,7 @@ public final class BuiltInShapes {
             "STARGATE_MATERIAL=POLISHED_BLACKSTONE_BRICKS",
             "ACTIVE_MATERIAL=GLOWSTONE",
             "REDSTONE_ACTIVATED=FALSE"
-        }
+        };
     }
     public static boolean isBuiltInName(String name) {
         return name != null && (name.equalIsIgnoreCase(PREGASUS) || name.equalsIgnoreCase(DESTINY));
