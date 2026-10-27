@@ -36,6 +36,9 @@ public class ConfigManager {
         WORMHOLE_DANGEROUS_KAWOOSH,
         WORMHOLE_KAWOOSH_DAMAGE,
         WORMHOLE_DEADLY_IRIS,
+        WORMHOLE_MOB_TRAVEL,
+        WORMHOLE_ITEM_TRAVEL,
+        WORMHOLE_ARROW_TRAVEL,
         PERMISSIONS_BACKEND,
         ECONOMY_ENABLED,
         ALLOW_DESTINATION_GATE_SHUTDOWN,
@@ -250,6 +253,18 @@ public class ConfigManager {
         Setting di = getConfigurations().get(ConfigKeys.WORMHOLE_DEADLY_IRIS);
         return di != null && di.getValue() instanceof Boolean && di.getBooleanValue();
     }
+    public static boolean isMobTravelEnabled() {
+        Setting mt = getConfigurations().get(ConfigKeys.WORMHOLE_MOB_TRAVEL);
+        return mt == null || !(mt.getValue() instanceof Boolean) || mt.getBooleanValue();
+    }
+    public static boolean isItemTravelEnabled() {
+        Setting it = getConfigurations().get(ConfigKeys.WORMHOLE_ITEM_TRAVEL);
+        return it == null || !(it.getValue() instanceof Boolean) || it.getBooleanValue();
+    }
+    public static boolean isArrowTravelEnabled() {
+        Setting at = getConfigurations().get(ConfigKeys.WORMHOLE_ARROW_TRAVEL);
+        return at == null || !(at.getValue() instanceof Boolean) || at.getBooleanValue();
+      }
     /**
      * When true, a player standing at the receiving end of an open wormhole may
      * close it with the dial lever/button, instead of being told the gate is

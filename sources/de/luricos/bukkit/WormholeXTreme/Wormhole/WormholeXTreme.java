@@ -30,6 +30,7 @@ import de.luricos.bukkit.WormholeXTreme.Wormhole.listeners.WormholeXTremeShapeLi
 import de.luricos.bukkit.WormholeXTreme.Wormhole.listeners.WormholeXTremeVehicleListener;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.StargateHelper;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.WormholeHazards;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.WormholeTravel;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.Stargate;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateDBManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateManager;
@@ -150,6 +151,7 @@ public class WormholeXTreme extends JavaPlugin {
             registerEvents(false);
             registerCommands();
         }
+        WormholeTravel.start();
         WormholePlayerManager.registerAllOnlinePlayers();
 
         if (ConfigManager.isEconomyEnabled()) {

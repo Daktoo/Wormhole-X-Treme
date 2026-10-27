@@ -119,18 +119,36 @@ public class WormholeHazards implements Listener {
                     killAtIris(player, sourceGate);
                     killedAny = true;
                 }
-            } else if (passenger instanceof LivingEntity && !(passenger instanceof ArmorStand)) {
-                LivingEntity creature = (LivingEntity) passenger;
-                if (!creature.isDead() && !creature.isInvulnerable()) {
-                    notifyIrisImpact(sourceGate.getGateTarget(), null);
-                    creature.setHealth(0.0d);
+            } else if (passenger instanceof LivingEntity) {
+                if (killCreatureAtIris((LivingEntity) passenger, sourceGate)) {
                     killedAny = true;
-                    WXTLogger.prettyLog(Level.FINE, false, describe(creature) + " was killed by the closed iris of '" + (sourceGate.getGateTarget() != null ? sourceGate.getGateTarget().getGateName() : "?") + "'.");
                 }
             }
         }
         return killedAny;
     }
+    public static boolean destroyAtIris(Entity entity, Stargate sourceGate) {
+        if (!ConfigManager.isDeadlyIrisEnabled() || entity == null || entity.isDead()) {
+            return false;
+        }
+        notifyIrisImpact(sourceGate.getGateTarget(), null);
+        entity.remove();
+        WXTLogger.prettyLog(Level.FINE, false, entity.getType() + " was destroyed by the closed iris of '" + (sourceGate.getGateTarget() != null ? sourceGate.getGateTarget().getGateName() : "?") + "'.");
+        return true;
+    }
+    public static boolean killCreatureAtIris(LivingEntity creature, Stargate sourceGate) {
+        if (!ConfigManager.isDeadlyIrisEnabled() || creature == null || creature instanceof Player || creature instanceof ArmorStand) {
+            return false;
+        }
+        if (creature.isDead() || creature.isInvulnerable()) {
+            return false;
+        }
+        notifyIrisImpact(sourceGate.getGateTarget(), null);
+        creature.setHealth(0.0d);
+        WXTLogger.prettyLog(Level.FINE, false, describe(creature) + " was killed by the closed iris of '" + (sourceGate.getGateTarget() != null ? sourceGate.getGateTarget().getGateName() : "?") + "'.");
+        return true;
+    }
+
     private static void notifyIrisImpact(Stargate target, Player traveller) {
         if (target == null || target.getGatePlayerTeleportLocation() == null) {
             return;

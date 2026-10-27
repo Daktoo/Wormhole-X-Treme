@@ -293,7 +293,7 @@ public final class WormholeTravel implements Runnable {
         if (cos < -0.9999d) {
             Vector axis = Math.abs(into.getY()) < 0.9d ? new Vector(0, 1, 0) : new Vector(1, 0, 0);
             return vector.clone().rotateAroundAxis(axis, Math.PI);
-        }.
+        }
         Vector axis = into.getCrossProduct(outOf).normalize();
         return vector.clone().rotateAroundAxis(axis, Math.acos(cos));
     private static Vector facingVector(BlockFace facing) {
