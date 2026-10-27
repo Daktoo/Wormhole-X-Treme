@@ -296,14 +296,15 @@ public final class WormholeTravel implements Runnable {
         }
         Vector axis = into.getCrossProduct(outOf).normalize();
         return vector.clone().rotateAroundAxis(axis, Math.acos(cos));
+    }
     private static Vector facingVector(BlockFace facing) {
         if (facing == null) {
             return null;
         }
-        Vector axis = into.getCrossProduct(outOf).normalize();
-        return vector.clone().rotateAroundAxis(axis, Math.acos(cos));
+        Vector v = new Vector(facing.getModX(), facing.getModY(), facing.getModZ());
+        return v.lengthSquared() > 0.0d ? v.normalize() : null;
     }
-    private static Vector facingVector(BlockFace facing) {
+    private static void closeIfSingleUse(Stargate gate) {
         if (ConfigManager.getTimeoutShutdown() == 0) {
             gate.shutdownStargate(true);
         }
