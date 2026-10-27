@@ -129,6 +129,16 @@ public class WXLink implements CommandExecutor, TabCompleter {
                     names.add(gate.getGateName());
                 }
             }
+            Collections.sort(names);
+            return names;
+        }
+        if (args.length == 2 || args.length == 3) {
+            List<String> options = new ArrayList<>();
+            for (String option : new String[] {"idc=", "net="}) {
+                if (option.startsWith(args[args.length - 1].toLowerCase())) {
+                    options.add(option);
+                }
+            }
             return options;
         }
         return Collections.emptyList();
