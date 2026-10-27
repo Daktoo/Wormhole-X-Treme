@@ -300,10 +300,10 @@ public final class WormholeTravel implements Runnable {
         if (facing == null) {
             return null;
         }
-        Vector v = new Vector(facing.getModX(), facing.getModY(), facing.getModZ());
-        return v.lengthSquared() > 0.0d ? v.normalize() : null;
+        Vector axis = into.getCrossProduct(outOf).normalize();
+        return vector.clone().rotateAroundAxis(axis, Math.acos(cos));
     }
-    private static void closeIfSingleUse(Stargate gate) {
+    private static Vector facingVector(BlockFace facing) {
         if (ConfigManager.getTimeoutShutdown() == 0) {
             gate.shutdownStargate(true);
         }
