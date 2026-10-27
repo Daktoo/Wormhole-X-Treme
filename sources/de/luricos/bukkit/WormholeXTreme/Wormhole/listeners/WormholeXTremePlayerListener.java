@@ -2,7 +2,9 @@ package de.luricos.bukkit.WormholeXTreme.Wormhole.listeners;
 
 import de.luricos.bukkit.WormholeXTreme.Wormhole.config.ConfigManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.BonusGates;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.DestinyChevrons;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.StargateHelper;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.model.GateKind;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.WormholeHazards;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.Stargate;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateDBManager;
@@ -279,11 +281,29 @@ public class WormholeXTremePlayerListener implements Listener {
             return wormholePlayer;
         }
         player.sendMessage(String.format(ConfigManager.MessageStrings.gateActivated.toString(), currentGate.getGateName() + " "));
-        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Chevrons locked! §3:: §B<required> §6[optional]");
-        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type '§F/dial §B<GateName> §6[idc]§7'");
+        boolean destiny = GateKind.isDestiny(currentGate);
+        if (!destiny) {
+            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Chevrons locked! §3:: §B<required> §6[optional]");
+            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type '§F/dial §B<GateName> §6[idc]§7'");
+        }
         StargateManager.addActivatedStargate(currentGate);
-        currentGate.startActivationTimer(player);
+        currentGate.startActivationTime(player);
         currentGate.lightStargate(true);
+        if (destiny) {
+            final Stargate spinningGate = currentGate;
+            DestinyChevrons.whenLocked(spinningGate, () -> {
+                if (!player.isOnline()) {
+                    return;
+                }
+                if (spinningGate.getGateTarget() != null) {
+                    player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Chevrons locked!");
+                    return;
+                }
+                spinningGate.startActivationTimer(player);
+                player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Chevrons locked! §3:: §B<required> §6[optional]");
+                player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type '§F/dial §B<GateName> §6[idc]§7'");
+            });
+        }
         wormholePlayer.getProperties().setHasActivatedStargate(true);
         currentGate.setLastUsedBy(player.getName());
         return wormholePlayer;

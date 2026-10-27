@@ -49,6 +49,14 @@ public final class DestinyChevrons {
             gate.setGateChevronsLocked(true);
         }
     }
+    public static void whenLocked(Stargate gate, Runnable action) {
+        Spin spin = gate == null ? null : running.get(gate.getGateName());
+        if (spin != null) {
+            spin.onLocked.add(action);
+        } else if (gate != null && gate.getGateChevronsLocked()) {
+            action.run();
+        }
+    }
     public static void stop(Stargate gate) {
         Spin spin = gate == null ? null : running.remove(gate.getGateName());
         if (spin == null) {
@@ -177,6 +185,7 @@ public final class DestinyChevrons {
         final Stargate gate;
         final Ring ring;
         final Set<Integer> locked = new HashSet<>();
+        final List<Runnable> onLocked = new ArrayList<>();
         int taskId = -1;
         int position;
         int direction = 1;
@@ -224,6 +233,9 @@ public final class DestinyChevrons {
                 WormholeXTreme.getScheduler().cancelTask(this.taskId);
                 this.gate.setGateChevronsLocked(true);
                 WXTLogger.prettyLog(Level.FINE, false, "Destiny gate '" + this.gate.getGateName() + "' locked all chevrons.");
+                for (Runnable action : this.onLocked) {
+                    action.run();
+                }
                 return;
             }
             this.direction = -this.direction;
