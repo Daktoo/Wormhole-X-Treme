@@ -30,7 +30,7 @@ import org.bukkit.entity.Player;
 public class Wormhole implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUBCOMMANDS = Arrays.asList(
-        "activate_timeout", "cooldown", "custom", "debug", "gateinfo",
+        "activate_timeout", "bonusgates", "cooldown", "custom", "debug", "gateinfo",
         "irismaterial", "kickback_count", "legacyfixgate", "legacyfixgates",
         "lightmaterial", "min_gate_distance", "owner", "perm", "perms", "permissions",
         "portalmaterial", "redstone", "regenerate", "regen",
@@ -75,7 +75,8 @@ public class Wormhole implements CommandExecutor, TabCompleter {
                         gateNames.add("-all");
                     }
                     return filterPrefix(gateNames, args[1]);
-
+                case "bonusgates":
+                    return filterPrefix(BOOL_VALUES, args[1]);
                 case "cooldown":
                     List<String> cooldownArg2 = new ArrayList<>(BOOL_VALUES);
                     cooldownArg2.addAll(GROUP_NAMES);
@@ -200,6 +201,7 @@ public class Wormhole implements CommandExecutor, TabCompleter {
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole toggle_transport | show_transport");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole kickback_count §8[n]");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole min_gate_distance §8[blocks]");
+        sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole bonusgates §8[true|false]");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole gateinfo §8[gate]");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole legacyfixgate §8[gate] -f");
         sender.sendMessage(ConfigManager.MessageStrings.normalHeader + "§7/wormhole updategate §8<gate|-all>");
@@ -278,6 +280,9 @@ public class Wormhole implements CommandExecutor, TabCompleter {
             }
             if (a[0].equalsIgnoreCase("min_gate_distance")) {
                 return setWormholeMinimumGateDistance(sender, a);
+            }
+            if (a[0].equalsIgnoreCase("bonusgates")) {
+                return setBonusGates(sender, a);
             }
             if (a[0].equalsIgnoreCase("permissions")) {
                 return doShowPermissions(sender, a);
@@ -945,6 +950,30 @@ public class Wormhole implements CommandExecutor, TabCompleter {
             player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Minimum gate distance: '" + ConfigManager.getWormholeMinimumGateDistance() + "'" + (ConfigManager.getWormholeMinimumGateDistance() == 0 ? " (disabled)" : " blocks"));
             return true;
         }
+        return true;
+    }
+
+    public static boolean setBonusGates(CommandSender sender, String[] args) {
+        if (args.length >= 2) {
+            String value = args[1].toLowerCase();
+            boolean enabled;
+            if (value.equals("true") || value.equals("yes") || value.equals("on")) {
+                enabled = true;
+            } else if (value.equals("false") || value.equals("no") || value.equals("off")) {
+                enabled = false;
+            } else {
+                sender.sendMessage(ConfigMessage.MessageStrings.errorHeader.toString() + "Use true or false. '" + args[1] + "' is invalid.");
+                return true;
+            }
+            ConfigManager.setBonusGatesEnabled(enabled);
+            de.luricos.bukkit.WormholeXTreme.Wormhole.config.Configuration.writeFile(de.luricos.bukkit.WormholeXTreme.Wormhole.WormholeXTreme.getThisPlugin().getDescription());
+            sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Bonus gates will be " + (enabled ? "enabled" : "disabled") + ". Run /wxreload to apply.");
+            if (!enabled) {
+                sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Bonus gates disabled."); /* might change this at some point */
+            }
+            return true;
+        }
+        sender.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Pegasus and Destiny gates: " + (ConfigManager.isBonusGatesEnabled() ? "enabled" : "disabled"));
         return true;
     }
 

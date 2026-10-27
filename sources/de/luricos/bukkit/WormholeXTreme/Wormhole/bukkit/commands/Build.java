@@ -56,13 +56,21 @@ public class Build implements CommandExecutor, TabCompleter {
                     sCount++;
                 }
             }
+            if (de.luricos.bukkit.WormholeXTreme.Wormhole.logic.BuiltInShapes.isBuiltInName(shapeName) && !de.luricos.bukkit.WormholeXTreme.Wormhole.logic.BonusGates.isEnabled()) {
+                player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + de.luricos.bukkit.WormholeXTreme.Wormhole.logic.BonusGates.DISABLED_MESSAGE);
+                return true;
+            }
             if (StargateHelper.isStargateShape(shapeName) && !StargateHelper.isShapeEnabled(shapeName)) {
                 player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Shape '" + StargateHelper.getStargateShapeName(shapeName) + "' is disabled on this server.");
                 return true;
             }
             if (StargateHelper.isStargateShape(shapeName)) {
                 StargateManager.addPlayerBuilderShape(player.getName(), StargateHelper.getStargateShape(shapeName));
-                player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Press Activation button on new DHD to autobuild Stargate in the shape of: " + StargateHelper.getStargateShapeName(shapeName));
+                if (shapeName.equalsIgnoreCase(de.luricos.bukkit.WormholeXTreme.Wormhole.logic.BuiltInShapes.DESTINY)) {
+                    player.sendMessage(ConfigManager.MessageStrings.normalHeader.tostring() + "Press Activation button to autobuild Destiny Stargate.");
+                } else {
+                    player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Press Activation button on new DHD to autobuild Stargate in the shape of: " + StargateHelper.getStargateShapeName(shapeName));
+                }
                 return true;
             }
             player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Invalid shape: " + shapeName);

@@ -5,6 +5,8 @@ import de.luricos.bukkit.WormholeXTreme.Wormhole.economy.EconomyManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.Stargate;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateShape;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.BonusGates;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.model.GateKind;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.permissions.StargateRestrictions;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.permissions.WXPermissions;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.utils.WXTLogger;
@@ -16,7 +18,7 @@ import org.bukkit.entity.Player;
 
 public class Complete implements CommandExecutor {
 
-    private static boolean doComplete(Player player, String[] args) {
+    static boolean doComplete(Player player, String[] args) {
         String name = args[0].trim().replace("\n", "").replace("\r", "");
         int maxGateNameLength = ConfigManager.getWormholeMaxGateNameLength();
         if (name.length() <= maxGateNameLength) {
@@ -63,6 +65,7 @@ public class Complete implements CommandExecutor {
 
                         if (StargateManager.completeStargate(player, name, idc, network)) {
                             player.sendMessage(ConfigManager.MessageStrings.constructSuccess.toString());
+                            BonusGates.onGateCompleted(player, StargateManager.getStargate(name));
                             return true;
                         }
                         player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Construction Failed!?");
@@ -86,6 +89,14 @@ public class Complete implements CommandExecutor {
         if (arguments.length > 3 || arguments.length <= 0) {
             return false;
         }
-        return !CommandUtilities.playerCheck(sender) || doComplete((Player) sender, arguments);
+        if (!CommandUtilities.playerCheck(sender)) {
+            return true;
+        }
+        Player player = (Player) sender;
+        if (GateKind.isDestiny(StargateManager.getIncompleteStargate(player))) {
+            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Destiny gates are completed with /wxlink while holding a Destiny DHD Controller.");
+            return true;
+        }
+        return doComplete(player, arguments);
     }
 }

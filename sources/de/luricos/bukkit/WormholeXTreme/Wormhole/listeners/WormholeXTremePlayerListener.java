@@ -1,6 +1,7 @@
 package de.luricos.bukkit.WormholeXTreme.Wormhole.listeners;
 
 import de.luricos.bukkit.WormholeXTreme.Wormhole.config.ConfigManager;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.BonusGates;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.StargateHelper;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.WormholeHazards;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.Stargate;
@@ -159,7 +160,11 @@ public class WormholeXTremePlayerListener implements Listener {
                     return true;
                 }
                 player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Valid Stargate Design! §3:: §B<required> §6[optional]");
-                player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type '§F/wxcomplete §B<name> §6[idc=IDC] [net=NET]§7' to complete.");
+                if (de.luricos.bukkit.WormholeXTreme.Wormhole.model.GateKind.isDestiny(newGate)) {
+                    player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Hold a Destiny DHD Controller and type '§F/wxlink §B<name> §6[idc=IDC] [net=NET]§7' to complete.");
+                } else {
+                    player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type '§F/wxcomplete §B<name> §6[idc=IDC] [net=NET]§7' to complete.");
+                }
                 StargateManager.addIncompleteStargate(player.getName(), newGate);
                 return true;
             }
@@ -183,6 +188,11 @@ public class WormholeXTremePlayerListener implements Listener {
             return null;
         }
         Stargate currentGate = wormholePlayer.getStargate();
+        if (!BonusGates.isUsable(currentGate)) {
+            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + BonusGates.DISABLED_MESSAGE);
+            wormholePlayer.removeStargate(currentGate);
+            return null;
+        }
         if (currentGate.isGateActive() || currentGate.isGateLightsActive()) {
             if (currentGate.getGateTarget() != null) {
                 currentGate.shutdownStargate(true);
@@ -278,7 +288,16 @@ public class WormholeXTremePlayerListener implements Listener {
         currentGate.setLastUsedBy(player.getName());
         return wormholePlayer;
     }
-
+    public static void toggleGateFromController(Player player, Stargate stargate) {
+        WormholePlayerManager.getRegisteredWormholePlayer(player).addStargate(stargate);
+        WormholePlayer wormholePlayer = handleGateActivationSwitch(player);
+        if (wormholePlayer == null) {
+            return;
+        }
+        if (wormholePlayer.getProperties().hasShutdownGate() || wormholePlayer.getProperties().hasReceivedIrisLockMessage() || !wormholePlayer.getProperties().hasActivatedStargate() || wormholePlayer.getProperties().hasReceivedRemoteActiveMessage()) {
+            wormholePlayer.removeStargate(stargate);
+        }
+    }
     protected static boolean handlePlayerInteractEvent(PlayerInteractEvent event) {
         Stargate stargate;
         Block clickedBlock = event.getClickedBlock();

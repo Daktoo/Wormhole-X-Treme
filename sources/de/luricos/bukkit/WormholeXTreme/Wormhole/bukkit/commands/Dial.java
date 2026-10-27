@@ -1,6 +1,7 @@
 package de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands;
 
 import de.luricos.bukkit.WormholeXTreme.Wormhole.config.ConfigManager;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.model.GateKind;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.Stargate;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.permissions.WXPermissions;
@@ -25,7 +26,19 @@ public class Dial implements CommandExecutor, TabCompleter {
         if (args.length == 1) {
             // Scoped by list permission: a player who cannot run /wxlist all
             // only gets their own gates suggested.
-            return new ArrayList<String>(CommandUtilities.getGateNameSuggestions(sender, args[0]));
+            List<String> names = new ArrayList<String>(CommandUtilities.getGateNameSuggestions(sender, args[0]));
+            if (sender instanceof Player) {
+                WormholePlayer wormholePlayer = WormholePlayerManager.getRegisteredWormholePlayer((Player) sender);
+                Stargate source = wormholePlayer != null ? wormholePlayer.getStargate() : null;
+                if (source != null) {
+                    GateKind kind = GateKind.of(source);
+                    names.removeIf(name -> {
+                        Stargate gate = StargateManager.getStargate(name);
+                        return gate != null && GateKind.of(gate) != kind;
+                    });
+                }
+            }
+            return names;
         }
         return Collections.emptyList();
     }
@@ -42,6 +55,13 @@ public class Dial implements CommandExecutor, TabCompleter {
                         CommandUtilities.closeGate(sourceGate, false);
                         wormholePlayer.removeStargate(sourceGate);
                         player.sendMessage(ConfigManager.MessageStrings.targetInvalid.toString());
+                        return true;
+                    }
+                    GateKind sourceKind = GateKind.of(sourceGate);
+                    if (sourceKind != GateKind.of(target)) {
+                        CommandUtilities.cloesGate(sourceGate, false);
+                        wormholePlayer.removeStargate(sourceGate);
+                        player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + sourceKind.getDisplayName() + " gates can only dial other " + sourceKind.getDisplayName() + " gates.");
                         return true;
                     }
                     String targetnetwork = CommandUtilities.getGateNetwork(target);

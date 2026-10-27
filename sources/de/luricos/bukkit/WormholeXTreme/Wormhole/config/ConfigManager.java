@@ -39,6 +39,7 @@ public class ConfigManager {
         WORMHOLE_MOB_TRAVEL,
         WORMHOLE_ITEM_TRAVEL,
         WORMHOLE_ARROW_TRAVEL,
+        WORMHOLE_BONUS_GATES,
         PERMISSIONS_BACKEND,
         ECONOMY_ENABLED,
         ALLOW_DESTINATION_GATE_SHUTDOWN,
@@ -265,6 +266,13 @@ public class ConfigManager {
         Setting at = getConfigurations().get(ConfigKeys.WORMHOLE_ARROW_TRAVEL);
         return at == null || !(at.getValue() instanceof Boolean) || at.getBooleanValue();
       }
+    public static boolean isBonusGatesEnabled() {
+        Setting bg = getConfigurations().get(ConfigKeys.WORMHOLE_BONUS_GATES);
+        return bg == null || !(bg.getValue() instanceof Boolean) || bg.getBooleanValue();
+    }
+    public static void setBonusGatesEnabled(boolean enabled) {
+        setConfigValue(ConfigKeys.WORMHOLE_BONUS_GATES, Boolean.valueOf(enabled));
+    }
     /**
      * When true, a player standing at the receiving end of an open wormhole may
      * close it with the dial lever/button, instead of being told the gate is

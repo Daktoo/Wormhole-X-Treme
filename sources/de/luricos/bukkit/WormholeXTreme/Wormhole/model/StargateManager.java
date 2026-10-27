@@ -174,7 +174,11 @@ public class StargateManager {
         if (!chargePlayerForCompletedGate(player, stargate)) {
             return false;
         }
-        return completeStargate(player.getName(), stargate);
+        if (!completeStargate(player.getName(), stargate)) {
+            return false;
+        }
+        de.luricos.bukkit.WormholeXTreme.Wormhole.logic.BonusGates.onGateCompleted(player, stargate);
+        return true;
     }
 
     private static boolean chargePlayerForCompletedGate(Player player, Stargate stargate) {

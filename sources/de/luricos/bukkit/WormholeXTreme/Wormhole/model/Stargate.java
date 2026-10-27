@@ -3,6 +3,8 @@ package de.luricos.bukkit.WormholeXTreme.Wormhole.model;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.WormholeXTreme;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.config.ConfigManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.exceptions.WormholeDialSignException;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.BonusGates;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.DestinyChevrons;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.StargateUpdateRunnable;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.WormholeHazards;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.player.WormholePlayer;
@@ -316,6 +318,9 @@ public class Stargate {
                 lightStargate(true);
                 return true;
             }
+            if (DestinyChevrons.isSpinning(this)) {
+                return true;
+            }
             WXTLogger.prettyLog(Level.FINE, false, "Chevrons locked at gate: '" + getGateName() + "'");
             setGateChevronsLocked(true);
             return true;
@@ -355,6 +360,14 @@ public class Stargate {
             WXTLogger.prettyLog(Level.FINE, false, "Refused dial from '" + getGateName() + "': gate has no DHD and is incoming-only.");
             return false;
         }
+        if (!force && GateKind.of(this) != GateKind.of(target)) {
+            WXTLogger.prettyLog(Level.FINE, false, "Refused dial from '" + getGateName() + "' to '" + target.getGateName() + "': different gate kinds.");
+            return false;
+        }
+        if (!force && (!BonusGates.isUsable(this) || !BonusGates.isUsable(target))) {
+            WXTLogger.prettyLog(Level.FINE, false, "Refused dial from '" + getGateName() + "' to '" + target.getGateName() + "': bonus gates are switched off.");
+            return false;
+        }
         if (!force && target.isGateInUse()) {
             WXTLogger.prettyLog(Level.FINE, false, "Refused dial from '" + getGateName() + "' to '" + target.getGateName()
                     + "': target is already engaged (source: '" + target.getSourceGateName() + "').");
@@ -372,8 +385,8 @@ public class Stargate {
                 return false;
             }
             dialStargate();
-            getGateTarget().dialStargate();
             getGateTarget().setSourceGateName(getGateName());
+            getGateTarget().dialStargate();
             establishWormhole();
             if (isGateActive() && getGateTarget().isGateActive()) {
                 return true;
@@ -402,7 +415,7 @@ public class Stargate {
             return;
         }
         WXTLogger.prettyLog(Level.FINER, false, "Trying to establish link between '" + getGateName() + "' and '" + getGateTarget().getGateName() + "'");
-        if (getGateTarget().getGateChevronsLocked()) {
+        if (getGateTarget().getGateChevronsLocked() && (getGateChevronsLocked() || !GateKind.isDestiny(this))) {
             setWormholeEstablished(true);
             getGateTarget().setWormholeEstablished(true);
             WXTLogger.prettyLog(Level.FINER, false, "Chevrons locked on both sides. Starting thread ANIMATE_WOOSH.");
@@ -741,6 +754,13 @@ public class Stargate {
 
     public void lightStargate(boolean on) {
         WXTLogger.prettyLog(Level.FINE, false, "Lighting up '" + getGateName() + "'");
+        if (GateKind.isDestiny(this)) {
+            if (on) {
+                DestinyChevrons.start(this);
+                return;
+            }
+            DestinyChevrons.stop(this);
+        }
         if (on) {
             WXTLogger.prettyLog(Level.FINER, false, "Lighting up Order: " + getGateLightingCurrentIteration());
             if (getGateLightingCurrentIteration() == 0) {
@@ -865,6 +885,9 @@ public class Stargate {
      * Returns null when the gate has no recorded dial lever or facing.
      */
     public Block getGateDialPillarBlock() {
+        if (GateKind.isDestiny(this)) {
+            return null;
+        }
         Block lever = getGateDialLeverBlock();
         if (lever == null || getGateFacing() == null) {
             return null;
@@ -885,6 +908,9 @@ public class Stargate {
      * never wrongly demoted to one-sided.
      */
     public boolean isGateOneSided() {
+        if (GateKind.isDestiny(this)) {
+            return false;
+        }
         Block lever = getGateDialLeverBlock();
         World world = getGateWorld();
         if (lever == null || world == null) {
@@ -1574,6 +1600,9 @@ public class Stargate {
     }
 
     public void toggleDialLeverState(boolean regenerate) {
+        if (GateKind.isDestiny(this)) {
+            return;
+        }
         if (getGateDialLeverBlock() != null) {
             if (isGateActive()) {
                 WorldUtils.scheduleChunkLoad(getGateDialLeverBlock());

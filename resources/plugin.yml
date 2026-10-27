@@ -54,6 +54,9 @@ commands:
   wxshape:
     description: Create, edit and manage gate shapes in game.
     usage: /<command> <create|edit|enable|disable|load|unload|remove> [shape]
+  wxlink:
+    description: Link the Destiny DHD Controller to a nearby Destiny Stargate.
+    usage: /<command> <GateName> [IDC]
   wxconvertdb:
     description: Import gates from another database into the WormholeXTreme database.
     usage: /<command> <nxt|sqlite>

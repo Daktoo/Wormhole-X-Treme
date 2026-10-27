@@ -10,6 +10,7 @@ import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.Dial;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.Force;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.Go;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.WXIDC;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.WXLink;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.WXList;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.WXReload;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.bukkit.commands.WXRemove;
@@ -31,6 +32,8 @@ import de.luricos.bukkit.WormholeXTreme.Wormhole.listeners.WormholeXTremeVehicle
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.StargateHelper;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.WormholeHazards;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.WormholeTravel;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.logic.DestinyController;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.listeners.DestinyControllerListener;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.Stargate;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateDBManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateManager;
@@ -62,6 +65,7 @@ public class WormholeXTreme extends JavaPlugin {
     private static final WormholeXTremeShapeListener shapeListener = new WormholeXTremeShapeListener();
     private static final WormholeXTremeRedstoneListener redstoneListener = new WormholeXTremeRedstoneListener();
     private static final WormholeHazards hazardsListener = new WormholeHazards();
+    private static final DestinyControllerListener destinyControllerListener = new DestinyControllerListener();
     private static WorldHandler worldHandler = null;
     private static BukkitScheduler scheduler = null;
 
@@ -100,6 +104,7 @@ public class WormholeXTreme extends JavaPlugin {
             ConfigManager.setupConfigs(getDescription());
             WXTLogger.setLogLevel(ConfigManager.getLogLevel());
             StargateHelper.reloadShapes();
+            DestinyController.syncRecipe();
             PermissionsFile.reload();
             if (ConfigManager.isEconomyEnabled()) {
                 EconomyManager.initialise(StargateHelper.getShapeNames());
@@ -152,6 +157,7 @@ public class WormholeXTreme extends JavaPlugin {
             registerCommands();
         }
         WormholeTravel.start();
+        DestinyController.syncRecipe();
         WormholePlayerManager.registerAllOnlinePlayers();
 
         if (ConfigManager.isEconomyEnabled()) {
@@ -291,6 +297,10 @@ public class WormholeXTreme extends JavaPlugin {
         WXConvertDB wxconvertdb = new WXConvertDB();
         tp.getCommand("wxconvertdb").setExecutor(wxconvertdb);
         tp.getCommand("wxconvertdb").setTabCompleter(wxconvertdb);
+
+        WXLink wxlink = new WXLink();
+        tp.getCommand("wxlink").setExecutor(wxlink);
+        tp.getCommand("wxlink").setTabCompleter(wxlink);
     }
 
     public static void registerEvents(boolean critical) {
@@ -306,6 +316,7 @@ public class WormholeXTreme extends JavaPlugin {
         Bukkit.getServer().getPluginManager().registerEvents(entityListener, wxt);
         Bukkit.getServer().getPluginManager().registerEvents(shapeListener, wxt);
         Bukkit.getServer().getPluginManager().registerEvents(hazardsListener, wxt);
+        Bukkit.getServer().getPluginManager().registerEvents(destinyControllerListener, wxt);
     }
 
     protected static void setScheduler(BukkitScheduler scheduler2) {

@@ -85,6 +85,16 @@ public class StargateHelper {
         }
         return checkStargate(buttonBlock, facing, shape, true);
     }
+    
+    public static Stargate findStargate(Block buttonBlock, BlockFace facing, StargateShape shape) {
+        if (shape == null) {
+            return null;
+        }
+        if (shape instanceof Stargate3DShape) {
+            return checkStargate3D(buttonBlock, facing, (Stargate3DShape) shape, false);
+        }
+        return checkStargate(buttonBlock, facing, shape, false);
+    }
 
     private static Stargate checkStargate(Block buttonBlock, BlockFace facing, StargateShape shape, boolean create) {
         Block bLoc;
@@ -726,6 +736,7 @@ public class StargateHelper {
             }
         }
         WXTLogger.prettyLog(java.util.logging.Level.INFO, false, "Loaded " + stargateShapes.size() + " gate shape(s) from " + externalDir.getPath());
+        BonusGates.registerShapes(stargateShapes);
     }
 
     public static Stargate parseVersionedData(byte[] gate_data, World w, String name, StargateNetwork network) {
