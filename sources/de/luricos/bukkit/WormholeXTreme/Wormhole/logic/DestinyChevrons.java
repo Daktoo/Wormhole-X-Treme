@@ -42,7 +42,7 @@ public final class DestinyChevrons {
         }
         Spin spin = new Spin(gate, ring);
         running.put(gate.getGateName(), spin);
-        spin.taskId = WormholeXTreme.getScheduler().scheduleSyncRepeatingTask(WormholeXTreme.getThisPlugin(), spin, 1L, 1L);
+        spin.taskId = WormholeXTreme.getScheduler().scheduleSyncRepeatingTask(WormholeXTreme.getThisPlugin(), spin, 1L, 2L);
         if (spin.taskId == -1) {
             running.remove(gate.getGateName());
             lightAllChevrons(gate);
