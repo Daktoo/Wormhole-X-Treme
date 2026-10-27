@@ -67,8 +67,8 @@ public final class WormholeTravel implements Runnable {
             Material material = portalMaterial(gate);
             List<BoundingBox> boxes = new ArrayList<>(portal.size());
             BoundingBox area = null;
-            for (Location 1 : portal) {
-                Block block = world.getBlockAt(1.getBlockX(), 1.getBlockY(), 1.getBlockZ());
+            for (Location l : portal) {
+                Block block = world.getBlockAt(l.getBlockX(), l.getBlockY(), l.getBlockZ());
                 if (block.getType() != material) {
                     continue;
                 }
@@ -155,7 +155,181 @@ public final class WormholeTravel implements Runnable {
                 continue;
             }
             Block feet = mob.getLocation().getBlock();
-            
+            if (StargateManager.getGateFromBlock(feet) != gate || feet.getType() != horizon.material) {
+                continue;
+            }
+            sendMob(mob, gate);
         }
+    }
+    private static void sendMob(Mob mob, Stargate gate) {
+        Stargate target = gate.getGateTarget();
+        if (target == null) {
+            return;
+        }
+        if (target.isGateIrisActive()) {
+            if (WormholeHazards.killCreatureAtIris(mob, gate)) {
+                closeIfSingleUse(gate);
+                return;
+            }
+            Location back = outsideGate(gate);
+            if (back != null) {
+                mob.teleport(back);
+            }
+            return;
+        }
+        Location destination = target.getGatePlayerTeleportLocation();
+        if (destination == null) {
+            return;
+        }
+        mob.setFallDistance(0.0f);
+        mob.setNoDamageTicks(5);
+        if (mob.teleport(destination)) {
+            WXTLogger.prettyLog(Level.FINE, false, mob.getType() + " travelled through '" + gate.getGateName() + "' to '" + target.getGateName() + "'.");
+            closeIfSingleUse(gate);
+        }
+    }
+    private void checkMovers(Stargate gate, Horizon horizon, boolean arrows, boolean items, Set<UUID> watched, Set<UUID> sent) {
+        BoundingBox lookout = horizon.area.clone().expand(LOOKOUT);
+        for (Entity entity : horizon.world.getNearbyEntities(lookout, e -> (arrows && e instanceof AbstractArrow) || (items && e instanceof Item))) {
+            UUID id = entity.getUniqueId();
+            if (sent.contains(id) || entity.isDead() || !entity.isValid() || entity.isInsideVehicle() || !entity.getPassengers().isEmpty()) {
+                continue;
+            }
+            if (entity instanceof AbstractArrow && ((AbstractArrow) entity).isInBlock()) {
+                continue;
+            }
+            Vector now = entity.getBoundingBox().getCenter();
+            Vector velocity = entity.getVelocity();
+            Sighting before = this.lastSeen.get(id);
+            boolean seenHereBefore = before != null && before.world.equals(horizon.world);
+            Vector previous = seenHereBefore ? before.position : now.clone().subtract(velocity);
+            Vector momentum = seenHereBefore ? before.velocity : velocity;
+            Vector crossing = horizon.contains(now) ? now : horizon.crossing(previous, now);
+            if (crossing != null && enteringFromFront(gate, momentum)) {
+                sent.add(id);
+                sendMover(entity, gate, crossing, momentum);
+                continue;
+            }
+            watched.add(id);
+            this.lastSeen.put(id, new Sighting(horizon.world, now, velocity));
+        }
+    }
+    private static boolean enteringFromFront(Stargate gate, Vector momentum) {
+        Vector front = facingVector(gate.getGateFacing());
+        return front == null || momentum.dot(front) <= 0.01d;
+    }
+        private static void sendMover(Entity entity, Stargate gate, Vector crossing, Vector momentum) {
+        Stargate target = gate.getGateTarget();
+        if (target == null) {
+            return;
+        }
+        if (target.isGateIrisActive()) {
+            if (WormholeHazards.destroyAtIris(entity, gate)) {
+                closeIfSingleUse(gate);
+                return;
+            }
+            Location back = outsideGate(gate);
+            if (back != null && entity.teleport(back)) {
+                entity.setVelocity(new Vector());
+            }
+            return;
+        }
+        Vector out = turnThrough(momentum, gate.getGateFacing(), target.getGateFacing());
+        Location exit = exitPoint(gate, target, crossing);
+        if (exit == null) {
+            return;
+        }
+        if (out.lengthSquared() > 1.0E-6d) {
+            exit.setDirection(out);
+        }
+        boolean otherWorld = exit.getWorld() != null && !exit.getWorld().equals(entity.getWorld());
+        if (!entity.teleport(exit)) {
+            return;
+        }
+        entity.setVelocity(out);
+        if (otherWorld) {
+            WormholeXTreme.getScheduler().scheduleSyncDelayedTask(WormholeXTreme.getThisPlugin(), () -> {
+                if (entity.isValid()) {
+                    entity.setVelocity(out);
+                }
+            }, 1L);
+        }
+        WXTLogger.prettyLog(Level.FINE, false, entity.getType() + " travelled through '" + gate.getGateName() + "' to '" + target.getGateName() + "'.");
+        closeIfSingleUse(gate);
+    }
+    private static Location exitPoint(Stargate gate, Stargate target, Vector crossing) {
+        Location targetBase = target.getGatePlayerTeleportLocation();
+        if (targetBase == null) {
+            return null;
+        }
+        Vector sourceFront = facingVector(gate.getGateFacing());
+        Vector targetFront = facingVector(target.getGateFacing());
+        Location sourceBase = gate.getGatePlayerTeleportLocation();
+
+        Vector offset = new Vector(0.0d, 1.0d, 0.0d);
+        if (sourceBase != null && sourceFront != null) {
+            Vector relative = crossing.clone().subtract(sourceBase.toVector());
+            relative.subtract(sourceFront.clone().multiply(relative.dot(sourceFront)));
+            offset = turnThrough(relative, gate.getGateFacing(), target.getGateFacing());
+        }
+        Vector forward = targetFront != null ? targetFront : new Vector();
+        Location exit = targetBase.clone().add(offset).add(forward);
+        if (!exit.getBlock().isPassable()) {
+            exit = targetBase.clone().add(0.0d, 1.0d, 0.0d).add(forward);
+        }
+        return exit;
+    }
+    private static Vector turnThrough(Vector vector, BlockFace sourceFacing, BlockFace targetFacing) {
+        Vector into = facingVector(sourceFacing);
+        Vector outOf = facingVector(targetFacing);
+        if (into == null || outOf == null) {
+            return vector.clone();
+        }
+        into.multiply(-1.0);
+        double cos = Math.max(-1.0d, Math.min(1.0d, into.dot(outOf)));
+        if ( cos > 0.9999d) {
+            return vector.clone();
+        }
+        if (cos < -0.9999d) {
+            Vector axis = Math.abs(into.getY()) < 0.9d ? new Vector(0, 1, 0) : new Vector(1, 0, 0);
+            return vector.clone().rotateAroundAxis(axis, Math.PI);
+        }.
+        Vector axis = into.getCrossProduct(outOf).normalize();
+        return vector.clone().rotateAroundAxis(axis, Math.acos(cos));
+    private static Vector facingVector(BlockFace facing) {
+        if (facing == null) {
+            return null;
+        }
+        Vector v = new Vector(facing.getModX(), facing.getModY(), facing.getModZ());
+        return v.lengthSquared() > 0.0d ? v.normalize() : null;
+    }
+    private static void closeIfSingleUse(Stargate gate) {
+        if (ConfigManager.getTimeoutShutdown() == 0) {
+            gate.shutdownStargate(true);
+        }
+    }
+    private static Location outsideGate(Stargate gate) {
+        Location base = gate.getGatePlayerTeleportLocation();
+        if (base == null) {
+            return null;
+        }
+        BlockFace facing = gate.getGateFacing();
+        if (facing == null) {
+            return null;
+        }
+        for (int distance = 1; distance <= 3; distance++) {
+            Location candidate = base.clone().add(facing.getModX() * distance, 0, facing.getModZ() * distance);
+            Block feet = candidate.getBlock();
+            if (StargateManager.getGateFromBlock(feet) == null && feet.isPassable() && feet.getRelative(BlockFace.UP).isPassable()) {
+                return candidate;
+            }
+        }
+        return base.clone().add(facing.getModX() * 2, 0, facing.getModZ() * 2);
+    }
+    private static Material portalMaterial(Stargate gate) {
+        if (gate.isGateCustom()) {
+            return gate.getGateCustomPortalMaterial();
+        }
+        return gate.getGateShape() != null ? gate.getGateShape().getShapePortalMaterial() : Material.WATER;
     }
 }
