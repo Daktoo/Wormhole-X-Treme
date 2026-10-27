@@ -3,7 +3,7 @@ import de.luricos.bukkit.WormholeXTreme.Wormhole.config.ConfigManager;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.GateKind;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.Stargate;
 import de.luricos.bukkit.WormholeXTreme.Wormhole.model.StargateShape;
-import de.luricos.bukkit.WormholeXTreme.Wormhole.model.WXTLogger;
+import de.luricos.bukkit.WormholeXTreme.Wormhole.utils.WXTLogger;
 import java.util.Map;
 import java.util.logging.Level;
 import org.bukkit.Material;
@@ -35,14 +35,14 @@ public final class BonusGates {
             }
             shapes.put(name.toLowerCase(), shape);
         } catch (Exception e) {
-            WXTLogger.prettyLog(Level,SEVERE, false, "Could not register the built-in " + name + " shape: " + e.getMessage());
+            WXTLogger.prettyLog(Level.SEVERE, false, "Could not register the built-in " + name + " shape: " + e.getMessage());
         }
     }
     public static void onGateCompleted(Player player, Stargate gate) {
         GateKind kind = GateKind.of(gate);
         if (kind == GateKind.DESTINY) {
             Block buildSwitch = gate.getGateDialLeverBlock();
-            if (buildSwitch != null && (buildSwitch.getType() == MATERIAL.LEVER || Tag.BUTTONS.isTagged(buildSwitch.getType()))) {
+            if (buildSwitch != null && (buildSwitch.getType() == Material.LEVER || Tag.BUTTONS.isTagged(buildSwitch.getType()))) {
                 buildSwitch.setType(Material.AIR);
             }
         } else if (kind == GateKind.PEGASUS && player != null) {

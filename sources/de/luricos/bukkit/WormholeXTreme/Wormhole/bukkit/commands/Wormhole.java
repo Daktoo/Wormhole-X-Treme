@@ -962,7 +962,7 @@ public class Wormhole implements CommandExecutor, TabCompleter {
             } else if (value.equals("false") || value.equals("no") || value.equals("off")) {
                 enabled = false;
             } else {
-                sender.sendMessage(ConfigMessage.MessageStrings.errorHeader.toString() + "Use true or false. '" + args[1] + "' is invalid.");
+                sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Use true or false. '" + args[1] + "' is invalid.");
                 return true;
             }
             ConfigManager.setBonusGatesEnabled(enabled);

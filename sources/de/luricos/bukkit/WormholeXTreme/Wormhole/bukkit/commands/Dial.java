@@ -59,7 +59,7 @@ public class Dial implements CommandExecutor, TabCompleter {
                     }
                     GateKind sourceKind = GateKind.of(sourceGate);
                     if (sourceKind != GateKind.of(target)) {
-                        CommandUtilities.cloesGate(sourceGate, false);
+                        CommandUtilities.closeGate(sourceGate, false);
                         wormholePlayer.removeStargate(sourceGate);
                         player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + sourceKind.getDisplayName() + " gates can only dial other " + sourceKind.getDisplayName() + " gates.");
                         return true;

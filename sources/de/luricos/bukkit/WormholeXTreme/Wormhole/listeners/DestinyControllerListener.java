@@ -30,7 +30,7 @@ public class DestinyControllerListener implements Listener {
         if (!DestinyController.isController(item)) {
             return;
         }
-        event.seeCancelled(true);
+        event.setCancelled(true);
         Player player = event.getPlayer();
         long now = System.currentTimeMillis();
         Long last = this.lastUse.get(player.getUniqueId());
@@ -48,15 +48,15 @@ public class DestinyControllerListener implements Listener {
             return;
         }
         Stargate gate = StargateManager.getStargate(gateName);
-        if (gate == null | !GateKind.isDestiny(gate)) {
-            player.sendMessage(ConfigManager.MessageStrins.errorHeader.toString() + "The linked gate '" + gateName + "' no longer exists.");
+        if (gate == null || !GateKind.isDestiny(gate)) {
+            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "The linked gate '" + gateName + "' no longer exists.");
             return;
         }
         if (!DestinyController.isInRange(player, gate)) {
             player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "You need to be within " + (int) DestinyController.RANGE + " blocks of " + gate.getGateName() + ".");
             return;
         }
-        if (!WXPermissions.checkPermission(player, gate, WXPermissions,PermissionType.DIALER)) {
+        if (!WXPermissions.checkPermission(player, gate, WXPermissions.PermissionType.DIALER)) {
             player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
             return;
         }

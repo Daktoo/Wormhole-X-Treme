@@ -95,7 +95,7 @@ public final class DestinyChevrons {
             World world = gate.getGateWorld();
             BlockFace facing = gate.getGateFacing();
             ArrayList<Location> portal = gate.getGatePortalBlocks();
-            if (world == null || facing == null || portal == null | portal.isEmpty()) {
+            if (world == null || facing == null || portal == null || portal.isEmpty()) {
                 return null;
             }
             Vector front = new Vector(facing.getModX(), facing.getModY(), facing.getModZ());
@@ -108,7 +108,7 @@ public final class DestinyChevrons {
             for (Location l : portal) {
                 centre.add(new Vector(l.getBlockX() + 0.5d, l.getBlockY() + 0.5d, l.getBlockZ() + 0.5d));
             }
-            centre.multiply(0.1d / portal.size());
+            centre.multiply(1.0d / portal.size());
             double plane = centre.dot(front);
             Set<Location> portalSet = new HashSet<>();
             for (Location l : portal) {
@@ -212,7 +212,7 @@ public final class DestinyChevrons {
                 setLit(this.gate, this.ring.blocks.get(this.position), false);
             }
             this.position = Math.floorMod(this.position + this.direction, n);
-            setLit(this.gate, this.ring.blocks.get(this.positon), true);
+            setLit(this.gate, this.ring.blocks.get(this.position), true);
             this.stepsLeft--;
             if (this.stepsLeft > 0) {
                 return;

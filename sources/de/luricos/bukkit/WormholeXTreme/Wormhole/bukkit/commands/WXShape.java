@@ -131,7 +131,8 @@ public class WXShape implements CommandExecutor, TabCompleter {
                 break;
         }
         if (a.length >= 2 && de.luricos.bukkit.WormholeXTreme.Wormhole.logic.BuiltInShapes.isBuiltInName(a[1]) && (sub.equals("edit") || sub.equals("enable") || sub.equals("disable") || sub.equals("load") || sub.equals("unload") || sub.equals("remove"))) {
-            player.sendMessage(ConfigMessage.MessageStrings.errorHeader + a[1] + " is a built-in gate type and cannot be changed with /wxshape. Use /wxt bonusgates to toggle Pegasus and Destiny gates.");
+            player.sendMessage(ConfigManager.MessageStrings.errorHeader + a[1] + " is a built-in gate type and cannot be changed with /wxshape. Use /wxt bonusgates to toggle Pegasus and Destiny gates.");
+            return true;
         }
         switch (sub) {
             case "create":

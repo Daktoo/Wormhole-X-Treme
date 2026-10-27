@@ -18,13 +18,12 @@ import org.bukkit.inventory.ItemStack;
 public class WXLink implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player)) {
-            sender.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Only players can link a controller.");
+        if (!CommandUtilities.playerCheck(sender)) {
             return true;
         }
         Player player = (Player) sender;
         String[] a = CommandUtilities.commandEscaper(args);
-        if (a.length < 1) {
+        if (a.length < 1 || a.length > 3) {
             return false;
         }
         if (!BonusGates.isEnabled()) {
@@ -33,56 +32,105 @@ public class WXLink implements CommandExecutor, TabCompleter {
         }
         ItemStack held = player.getInventory().getItemInMainHand();
         if (!DestinyController.isController(held)) {
-            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Hold a " + DestinyController.NAME + " in your main hand to link it.");
+            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Hold a " + DestinyController.NAME + " in your main hand to use /wxlink.");
             return true;
         }
-        Stargate gate = StargateManager.getStargate(a[0]);
+        String name = a[0].trim().replace("\n", "").replace("\r", "");
+        String idc = "";
+        String network = "Public";
+        for (int i = 1; i < a.length; i++) {
+            String[] keyValue = a[i].split("=", 2);
+            if (keyValue.length == 2 && keyValue[0].equalsIgnoreCase("idc")) {
+                idc = keyValue[1];
+            } else if (keyValue.length == 2 && keyValue[0].equalsIgnoreCase("net")) {
+                network = keyValue[1];
+            } else if (keyValue.length == 1 && idc.isEmpty()) {
+                idc = keyValue[0];
+            }
+        }
+        Stargate existing = StargateManager.getStargate(name);
+        if (existing != null) {
+            if (!GateKind.isDestiny(existing)) {
+                player.sendMessage(ConfigManager.MessageStrings.constructNameTaken.toString() + "\"" + name + "\"");
+                return true;
+            }
+            return linkExisting(player, held, existing, idc);
+        }
+        return completeAndLink(player, held, name, idc, network);
+    }
+    private static boolean completeAndLink(Player player, ItemStack held, String name, String idc, String network) {
+        Stargate gate = DestinyController.findUnbuiltGate(player);
         if (gate == null) {
-            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Gate does not exist: " + a[0]);
+            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "There is no new Destiny gate within " + (int) DestinyController.RANGE + " blocks.");
+            player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "To link this controller to a Destiny gate, use /wxlink.");
             return true;
         }
-        if (!GateKind.isDestiny(gate)) {
-            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + gate.getGateName() + " is not a Destiny gate.");
+        if (gate.getGateDialLeverBlock() != null) {
+            gate.getGateStructureBlocks().remove(gate.getGateDialLeverBlock().getLocation());
+        }
+        Stargate previous = StargateManager.getIncompleteStargate(player);
+        StargateManager.addIncompleteStargate(player.getName(), gate);
+        List<String> completeArgs = new ArrayList<>();
+        completeArgs.add(name);
+        if (!idc.isEmpty()) {
+            completeArgs.add("idc=" + idc);
+        }
+        completeArgs.add("net=" + network);
+        Complete.doComplete(player, completeArgs.toArray(new String[0]));
+        Stargate completed = StargateManager.getStargate(name);
+        if (completed != gate) {
+            if (previous != null && previous != gate) {
+                StargateManager.addIncompleteStargate(player.getName(), previous);
+            }
             return true;
         }
+        link(player, held, completed);
+        return true;
+    }
+    private static boolean linkExisting(Player player, ItemStack held, Stargate gate, String idc) {
         if (!DestinyController.isInRange(player, gate)) {
-            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "You need to be within " + (int) DestinyController.RANGE + " blocks of " + gate.getGateName() + " to link it.");
+            player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "You must be within " + (int) DestinyController.RANGE + " blocks of " + gate.getGateName() + " to link it.");
             return true;
         }
         if (!WXPermissions.checkPermission(player, gate, WXPermissions.PermissionType.DIALER)) {
             player.sendMessage(ConfigManager.MessageStrings.permissionNo.toString());
             return true;
         }
-        String idc = gate.getGateIrisDeactivationCode();
-        if (idc != null && !idc.isEmpty()) {
-            if (a.length < 2) {
+        String gateIdc = gate.getGateIrisDeactivationCode();
+        if (gateIdc != null && !gateIdc.isEmpty()) {
+            if (idc.isEmpty()) {
                 player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Gate " + gate.getGateName() + "'s Iris is locked.");
                 return true;
             }
-            if (!idc.equals(a[1])) {
+            if (!gateIdc.equals(idc)) {
                 player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "Incorrect IDC. Please try again.");
                 return true;
             }
         }
+        link(player, held, gate);
+        return true;
+    }
+    private static void link(Player player, ItemStack held, Stargate gate) {
         DestinyController.setLinkedGate(held, gate.getGateName());
         player.getInventory().setItemInMainHand(held);
-        player.sendMessage(ConfigManager.MessageStrings.normalStrings.toString() + "Controller linked to " + gate.getGateName() + ". Right-click to active gate, left-click to toggle iris.");
-        return true;
+        player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Controller linked to " + gate.getGateName() + ". Right-click to activate gate, left-click to toggle iris.");
     }
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (args.length != 1 || !(sender instanceof Player)) {
+        if (!(sender instanceof Player)) {
             return Collections.emptyList();
         }
-        Player player = (Player) sender;
-        String prefix = args[0].toLowerCase();
-        List<String> names = new ArrayList<>();
-        for (Stargate gate : StargateManager.getAllGates()) {
-            if (GateKind.isDestiny(gate) && gate.getGateName().toLowerCase().startsWith(prefix) && DestinyController.isInRange(player, gate)) {
-                names.add(gate.getGateName());
+        if (args.length == 1) {
+            Player player = (Player) sender;
+            String prefix = args[0].toLowerCase();
+            List<String> names = new ArrayList<>();
+            for (Stargate gate : StargateManager.getAllGates()) {
+                if (GateKind.isDestiny(gate) && gate.getGateName().toLowerCase().startsWith(prefix) && DestinyController.isInRange(player, gate)) {
+                    names.add(gate.getGateName());
+                }
             }
+            return options;
         }
-        Collections.sort(names);
-        return names;
+        return Collections.emptyList();
     }
 }

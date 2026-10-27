@@ -67,7 +67,7 @@ public class Build implements CommandExecutor, TabCompleter {
             if (StargateHelper.isStargateShape(shapeName)) {
                 StargateManager.addPlayerBuilderShape(player.getName(), StargateHelper.getStargateShape(shapeName));
                 if (shapeName.equalsIgnoreCase(de.luricos.bukkit.WormholeXTreme.Wormhole.logic.BuiltInShapes.DESTINY)) {
-                    player.sendMessage(ConfigManager.MessageStrings.normalHeader.tostring() + "Press Activation button to autobuild Destiny Stargate.");
+                    player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Press Activation button to autobuild Destiny Stargate.");
                 } else {
                     player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Press Activation button on new DHD to autobuild Stargate in the shape of: " + StargateHelper.getStargateShapeName(shapeName));
                 }
