@@ -1,10 +1,10 @@
 <div align="center">
 
-# Wormhole X-Treme v1.1.7
+# Wormhole X-Treme v1.1.8
 
 **The easiest Stargate plugin to use.**
 
-![Version](https://img.shields.io/badge/version-1.1.7-blue)
+![Version](https://img.shields.io/badge/version-1.1.8-blue)
 ![Minecraft](https://img.shields.io/badge/Minecraft-1.20.4%20–%2026.3-brightgreen)
 ![Server](https://img.shields.io/badge/server-Spigot%20%7C%20Paper-orange)
 ![Java](https://img.shields.io/badge/Java-17%2B-red)
