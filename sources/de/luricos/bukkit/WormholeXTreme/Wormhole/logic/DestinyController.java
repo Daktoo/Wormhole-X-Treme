@@ -19,8 +19,10 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.CompassMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 public final class DestinyController {
@@ -43,7 +45,7 @@ public final class DestinyController {
         return key("destiny_dhd_controller");
     }
     public static ItemStack create() {
-        ItemStack item = new ItemStack(Material.RECOVERY_COMPASS);
+        ItemStack item = new ItemStack(Material.COMPASS);
         ItemMeta meta = item.getItemMeta();
         if (meta == null) {
             return item;
@@ -60,7 +62,7 @@ public final class DestinyController {
         return item;
     }
     public static boolean isController(ItemStack item) {
-        if (item == null || item.getType() != Material.RECOVERY_COMPASS || !item.hasItemMeta()) {
+        if (item == null || (item.getType() != Material.COMPASS && item.getType() != Material.RECOVERY_COMPASS) || !item.hasItemMeta()) {
             return false;
         }
         ItemMeta meta = item.getItemMeta();
@@ -73,14 +75,26 @@ public final class DestinyController {
         PersistentDataContainer data = item.getItemMeta().getPersistentDataContainer();
         return data.get(linkKey(), PersistentDataType.STRING);
     }
-    public static void setLinkedGate(ItemStack item, String gateName) {
+    public static ItemStack setLinkedGate(ItemStack item, String gateName) {
         if (!isController(item)) {
-            return;
+            return item;
+        }
+        if (item.getType() != Material.COMPASS) {
+            ItemStack compass = new ItemStack(Material.COMPASS, item.getAmount());
+            compass.setItemMeta(Bukkit.getItemFactory().asMetaFor(item.getItemMeta(), Material.COMPASS));
+            item = compass;
         }
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(linkKey(), PersistentDataType.STRING, gateName);
         meta.setLore(Collections.singletonList(ChatColor.GRAY + LORE_PREFIX + gateName));
+        Stargate gate = StargateManager.getStargate(gateName);
+        if (meta instanceof CompassMeta && gate != null && gate.getGatePlayerTeleportLocation() != null) {
+            CompassMeta compass = (CompassMeta) meta;
+            compass.setLodestone(gate.getGatePlayerTeleportLocation());
+            compass.setLodestoneTracked(false);
+        }
         item.setItemMeta(meta);
+        return item;
     }
     public static boolean isInRange(Player player, Stargate gate) {
         Location centre = gate.getGatePlayerTeleportLocation();
@@ -136,15 +150,18 @@ public final class DestinyController {
     }
     public static void syncRecipe() {
         NamespacedKey recipeKey = recipeKey();
-        boolean present = Bukkit.getRecipe(recipeKey) != null;
+        Recipe existing = Bukkit.getRecipe(recipeKey);
         if (!BonusGates.isEnabled()) {
-            if (present) {
+            if (existing != null) {
                 Bukkit.removeRecipe(recipeKey);
             }
             return;
         }
-        if (present) {
-            return;
+        if (existing != null) {
+            if (existing.getResult().getType() == Material.COMPASS) {
+                return;
+            }
+            Bukkit.removeRecipe(recipeKey);
         }
         ShapedRecipe recipe = new ShapedRecipe(recipeKey, create());
         recipe.shape("GPG", "RER", "GOG");

@@ -111,8 +111,7 @@ public class WXLink implements CommandExecutor, TabCompleter {
         return true;
     }
     private static void link(Player player, ItemStack held, Stargate gate) {
-        DestinyController.setLinkedGate(held, gate.getGateName());
-        player.getInventory().setItemInMainHand(held);
+        player.getInventory().setItemInMainHand(DestinyController.setLinkedGate(held, gate.getGateName()));
         player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Controller linked to " + gate.getGateName() + ". Right-click to activate gate, left-click to toggle iris.");
     }
     @Override

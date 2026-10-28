@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.bukkit.entity.Player;
+import org.bukkit.Material;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -51,6 +52,9 @@ public class DestinyControllerListener implements Listener {
         if (gate == null || !GateKind.isDestiny(gate)) {
             player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "The linked gate '" + gateName + "' no longer exists.");
             return;
+        }
+        if (item.getType() != Material.COMPASS) {
+            player.getInventory().setItemInMainHand(DestinyController.setLinkedGate(item, gate.getGateName()));
         }
         if (!DestinyController.isInRange(player, gate)) {
             player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "You need to be within " + (int) DestinyController.RANGE + " blocks of " + gate.getGateName() + ".");
