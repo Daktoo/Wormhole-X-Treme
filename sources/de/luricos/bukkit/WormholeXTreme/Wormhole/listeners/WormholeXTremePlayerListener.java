@@ -287,7 +287,7 @@ public class WormholeXTremePlayerListener implements Listener {
             player.sendMessage(ConfigManager.MessageStrings.normalHeader.toString() + "Type '§F/dial §B<GateName> §6[idc]§7'");
         }
         StargateManager.addActivatedStargate(currentGate);
-        currentGate.startActivationTime(player);
+        currentGate.startActivationTimer(player);
         currentGate.lightStargate(true);
         if (destiny) {
             final Stargate spinningGate = currentGate;
