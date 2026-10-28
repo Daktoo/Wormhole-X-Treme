@@ -364,7 +364,9 @@ The finished jar is in `target/`. Every change is also built and tested automati
 ## Credits
 
 Wormhole X-Treme was created by **Lologarithm** and **alron**, carried on by **lycano**, and is now maintained by **Dakto_**.
+
 [A newer fork](https://github.com/khanjal/Wormhole-X-Treme) has been made, expanding past Stargates and focusing on a more complex system with other teleporters from the franchise. Created by Khan Jal.
+
 [NovyXtreme](https://github.com/Dograffe/NovyXtreme) is created by Dograffe, for the Novylen Minecraft Server.
 
 Released under the [GNU General Public License v3](LICENSE.txt). See [CHANGELOG.txt](CHANGELOG.txt) for what's new in each version.
