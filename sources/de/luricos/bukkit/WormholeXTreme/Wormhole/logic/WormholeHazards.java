@@ -68,7 +68,7 @@ public class WormholeHazards implements Listener {
                 ((Player) victim).sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "You were caught in an unstable vortex!");
             }
             String deathMessage = victim instanceof Player
-                ? victim.getName() + " was caught in an unstable vortex" /* + " of gate " + gate.getGateName() <- add this if you want gates to show in death message */
+                ? victim.getName() + " was disintegrated by an unstable vortex" /* + " of gate " + gate.getGateName() <- add this if you want gates to show in death message */
                 : null;
             damage(victim, damage, deathMessage);
             WXTLogger.prettyLog(Level.FINE, false, "Kawoosh of gate '" + gate.getGateName() + "' struck " + describe(victim) + " for " + damage + " damage.");
@@ -104,7 +104,7 @@ public class WormholeHazards implements Listener {
         String targetName = target != null ? target.getGateName() : sourceGate.getGateName();
         player.sendMessage(ConfigManager.MessageStrings.errorHeader.toString() + "You were not reintegrated due to the remote iris being closed.");
         notifyIrisImpact(target, player);
-        kill(player, player.getName() + " was killed upon hitting an iris");
+        kill(player, player.getName() + " was squashed against an iris");
         WXTLogger.prettyLog(Level.INFO, false, player.getName() + " was killed by the closed iris of '" + targetName + "', travelling from '" + sourceGate.getGateName() + "'.");
     }
     public static boolean killPassengersAtIris(Entity vehicle, Stargate sourceGate) {
