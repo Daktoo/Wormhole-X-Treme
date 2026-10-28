@@ -1,3 +1,13 @@
+Changes 1.1.8 (28/10/26 @ 16:37 GMT)
+- Added Pegasus and Destiny stargates
+- Added Destiny DHD Controller for activating Destiny Stargate and Iris
+- Added `/wxlink` for linking a DHD Controller to a Destiny Stargate
+- Added config option for toggling Pegasus and Destiny Stargates
+- Added config option to enable an unstable vortex hurting the user (and set how much damage it deals)
+- Added config option to enable to kill a user entering a locked Stargate
+- Entities can now travel through Stargates. Arrows will not lose momentum as they travel through. Items can also use Stargates
+- Updated the README with more up to date information
+
 Changes 1.1.7 (26/10/26 @ 10:10 GMT)
 - Added `/wxshape` to manage gate shapes within game chat.
 - Added a toggle to enable/disable gate shapes in each config. Shapes can also be toggled on or off with the `/wxshape` command. Non-canon gates disabled by default.
